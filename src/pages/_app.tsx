@@ -1,6 +1,19 @@
-import "@/styles/globals.css";
-import type { AppProps } from "next/app";
+import type { AppProps } from 'next/app'
+import '@/styles/globals.css'
 
-export default function App({ Component, pageProps }: AppProps) {
-  return <Component {...pageProps} />;
+// 👇 Import font
+import { Inter } from 'next/font/google'
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'], // Optional
+  variable: '--font-inter',             // Optional for Tailwind
+})
+
+export default function MyApp({ Component, pageProps }: AppProps) {
+  return (
+    <main className={`${inter.className}`}>
+      <Component {...pageProps} />
+    </main>
+  )
 }
