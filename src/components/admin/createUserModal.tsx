@@ -3,12 +3,7 @@ import { X, User, Mail, Lock, Shield, CreditCard, DollarSign } from 'lucide-reac
 import toast from 'react-hot-toast'
 import { NewUser } from '@/types/adminTypes'
 
-interface CreateUserModalProps {
-  onClose: () => void
-  onSuccess: () => void
-}
-
-const CreateUserModal = ({ onClose, onSuccess }: CreateUserModalProps) => {
+const CreateUserModal = ({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) => {
   const [loading, setLoading] = useState(false)
   const [newUser, setNewUser] = useState<NewUser>({
     email: '',

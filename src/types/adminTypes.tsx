@@ -61,3 +61,26 @@ export interface StatCardProps {
   trend?: string
   description?: string
 }
+
+// types/adminTypes.ts or above the functions
+export interface CreateUserPayload {
+  email: string
+  password: string
+  role?: 'user' | 'admin'
+  fullName?: string
+  createAccount?: boolean
+}
+
+export interface CreateUserResponse {
+  success: boolean
+  user?: any
+  profile?: any
+  account?: any
+  error?: string
+}
+
+export interface GetAllUsersResponse {
+  success: boolean
+  users?: any[]
+  error?: string
+}
