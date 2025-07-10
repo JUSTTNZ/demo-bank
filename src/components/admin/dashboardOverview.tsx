@@ -11,6 +11,12 @@ interface DashboardOverviewProps {
 const DashboardOverview = ({ stats, users }: DashboardOverviewProps) => {
   const recentUsers = users.slice(0, 5)
 
+  // Helper function to format trend
+  const formatTrend = (rate: number) => {
+    const sign = rate >= 0 ? '+' : ''
+    return `${sign}${rate.toFixed(1)}%`
+  }
+
   return (
     <div className="space-y-8">
       {/* Stats Grid */}
@@ -20,7 +26,7 @@ const DashboardOverview = ({ stats, users }: DashboardOverviewProps) => {
           value={stats.totalUsers || 0}
           icon={Users}
           color="bg-gradient-to-br from-blue-500 to-blue-600"
-          trend="+12%"
+          trend={formatTrend(stats.growthRate || 0)}
           description="Active users this month"
         />
         <StatCard
@@ -28,7 +34,7 @@ const DashboardOverview = ({ stats, users }: DashboardOverviewProps) => {
           value={stats.totalAccounts || 0}
           icon={CreditCard}
           color="bg-gradient-to-br from-emerald-500 to-teal-600"
-          trend="+8%"
+          trend={formatTrend(stats.accountGrowthRate || 0)}
           description="Connected accounts"
         />
         <StatCard
@@ -36,7 +42,7 @@ const DashboardOverview = ({ stats, users }: DashboardOverviewProps) => {
           value={`$${(stats.totalValue || 0).toLocaleString()}`}
           icon={DollarSign}
           color="bg-gradient-to-br from-purple-500 to-purple-600"
-          trend="+15%"
+          trend={formatTrend(stats.revenueGrowthRate || 0)}
           description="Assets under management"
         />
         <StatCard
@@ -56,7 +62,7 @@ const DashboardOverview = ({ stats, users }: DashboardOverviewProps) => {
           value={`$${(stats.monthlyRevenue || 0).toLocaleString()}`}
           icon={DollarSign}
           color="bg-gradient-to-br from-green-500 to-green-600"
-          trend="+22%"
+          trend={formatTrend((stats.monthlyRevenue || 0) > 0 ? 22 : 0)}
           description="Revenue this month"
         />
         <StatCard
@@ -64,7 +70,7 @@ const DashboardOverview = ({ stats, users }: DashboardOverviewProps) => {
           value={`${(stats.growthRate || 0).toFixed(1)}%`}
           icon={Activity}
           color="bg-gradient-to-br from-indigo-500 to-indigo-600"
-          trend="+3.2%"
+          trend={formatTrend(stats.growthRate || 0)}
           description="Monthly growth rate"
         />
       </div>
@@ -95,6 +101,8 @@ const DashboardOverview = ({ stats, users }: DashboardOverviewProps) => {
                         <Image
                           src={user.avatar_url}
                           alt={user.full_name || 'User'}
+                          width={40}
+                          height={40}
                           className="w-10 h-10 rounded-full object-cover"
                         />
                       ) : (

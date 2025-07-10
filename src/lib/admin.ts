@@ -1,164 +1,7 @@
-import supabaseAdmin from '@/utils/supabaseClient'
 import { createClient } from '@supabase/supabase-js'
-import { CreateUserPayload, CreateUserResponse, GetAllUsersResponse } from '@/types/adminTypes'
-
-// export async function createUser(userData: CreateUserPayload): Promise<CreateUserResponse> {
-//   const {
-//     email,
-//     password,
-//     role = 'user',
-//     fullName = '',
-//     createAccount = true
-//   } = userData
-
-//   try {
-//     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-//       email,
-//       password,
-//       email_confirm: true,
-//       user_metadata: {
-//         full_name: fullName
-//       }
-//     })
-
-//     if (authError || !authData?.user?.id) {
-//       throw new Error(`Failed to create user: ${authError?.message || 'Unknown error'}`)
-//     }
-
-//     const { data: profileData, error: profileError } = await supabaseAdmin
-//       .from('profiles')
-//       .update({ 
-//         role: role, 
-//         full_name: fullName 
-//         })
-//       .eq('id', authData.user.id)
-//       .select()
-
-//     if (profileError) {
-//       await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
-//       throw new Error(`Failed to create profile: ${profileError.message}`)
-//     }
-
-//     let accountData = null
-//     if (createAccount) {
-//       const accountNumber = 'ACC-' + Math.floor(Math.random() * 999999999).toString().padStart(9, '0')
-
-//       const { data: newAccount, error: accountError } = await supabaseAdmin
-//         .from('accounts')
-//         .insert({
-//           user_id: authData.user.id,
-//           account_number: accountNumber,
-//           account_type: 'checking',
-//           balance: 0.0,
-//           currency: 'USD',
-//           status: 'active'
-//         })
-//         .select()
-
-//       if (accountError) {
-//         console.warn('Failed to create account:', accountError.message)
-//       } else {
-//         accountData = newAccount?.[0]
-//       }
-//     }
-
-//     return {
-//       success: true,
-//       user: authData.user,
-//       profile: profileData?.[0],
-//       account: accountData
-//     }
-//   } catch (error: any) {
-//     console.error('Create user error:', error)
-//     return {
-//       success: false,
-//       error: error?.message || 'An unknown error occurred'
-//     }
-//   }
-// }
-
-// export async function getAllUsers(): Promise<GetAllUsersResponse> {
-//   try {
-//     const { data, error } = await supabaseAdmin
-//       .from('profiles')
-//       .select(`
-//         *,
-//         accounts(id, account_number, account_type, balance, currency, status)
-//       `)
-//       .order('created_at', { ascending: false })
-
-//     if (error) {
-//       throw new Error(`Failed to fetch users: ${error.message}`)
-//     }
-
-//     return {
-//       success: true,
-//       users: data
-//     }
-//   } catch (error: any) {
-//     console.error('Get users error:', error)
-//     return {
-//       success: false,
-//       error: error?.message || 'An unknown error occurred'
-//     }
-//   }
-// }
-
-
-export async function updateUser(userId, updates) {
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select()
-
-    if (error) {
-      throw new Error(`Failed to update user: ${error.message}`)
-    }
-
-    return {
-      success: true,
-      user: data[0]
-    }
-  } catch (error) {
-    console.error('Update user error:', error)
-    return {
-      success: false,
-      error: error.message
-    }
-  }
-}
-
-export async function deleteUser(userId) {
-  try {
-    // Delete from auth.users (this will cascade to profiles, accounts, chats, messages)
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
-
-    if (error) {
-      throw new Error(`Failed to delete user: ${error.message}`)
-    }
-
-    return {
-      success: true
-    }
-  } catch (error) {
-    console.error('Delete user error:', error)
-    return {
-      success: false,
-      error: error.message
-    }
-  }
-}
-
-// ============================================
-// ACCOUNT MANAGEMENT
-// ============================================
-
-
 
 // Create admin client with service role
-const supabaseAdmins = createClient(
+const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   {
@@ -172,7 +15,7 @@ const supabaseAdmins = createClient(
 // Test function to verify service role access
 async function testServiceRoleAccess() {
   try {
-    const { data, error } = await supabaseAdmins
+    const { data, error } = await supabaseAdmin
       .from('accounts')
       .select('count')
       .limit(1)
@@ -187,7 +30,7 @@ async function testServiceRoleAccess() {
   }
 }
 
-export async function createAccount(userId: string, accountData: { balance?: number}) {
+export async function createAccount(userId: string, accountData: { balance?: number }) {
   const { balance = 0.00 } = accountData
      
   try {
@@ -198,7 +41,7 @@ export async function createAccount(userId: string, accountData: { balance?: num
     
     console.log('Attempting to create account with:', { userId, accountNumber, balance })
          
-    const { data, error } = await supabaseAdmins
+    const { data, error } = await supabaseAdmin
       .from('accounts')
       .insert({
         user_id: userId,
@@ -222,13 +65,89 @@ export async function createAccount(userId: string, accountData: { balance?: num
       success: false,
       error: error.message
     }
-   
   }
 }
 
-// ============================================
-// CHAT AND MESSAGE MANAGEMENT
-// ============================================
+export async function updateAccount(accountId: string, updates: any) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('accounts')
+      .update(updates)
+      .eq('id', accountId)
+      .select()
+
+    if (error) {
+      throw new Error(`Failed to update account: ${error.message}`)
+    }
+
+    return {
+      success: true,
+      account: data[0]
+    }
+  } catch (error: any) {
+    console.error('Update account error:', error)
+    return {
+      success: false,
+      error: error.message
+    }
+  }
+}
+
+export async function getAllUsers() {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select(`
+        id,
+        email,
+        full_name,
+        avatar_url,
+        role,
+        created_at,
+        updated_at,
+        last_sign_in_at,
+        accounts(id, account_number, balance, created_at)
+      `)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw new Error(`Failed to fetch users: ${error.message}`)
+    }
+
+    // Transform data to match expected format
+    const transformedUsers = data?.map(user => ({
+      ...user,
+      role: user.role || 'user', // Default role if not specified
+      accounts: user.accounts || []
+    })) || []
+
+    return { success: true, users: transformedUsers }
+  } catch (error: any) {
+    console.error('Get users error:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+export async function getAllAccounts() {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('accounts')
+      .select(`
+        *,
+        profiles(id, email, full_name, avatar_url)
+      `)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw new Error(`Failed to fetch accounts: ${error.message}`)
+    }
+
+    return { success: true, accounts: data }
+  } catch (error: any) {
+    console.error('Get accounts error:', error)
+    return { success: false, error: error.message }
+  }
+}
 
 export async function getAllChats() {
   try {
@@ -249,7 +168,7 @@ export async function getAllChats() {
       success: true,
       chats: data
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get chats error:', error)
     return {
       success: false,
@@ -258,7 +177,7 @@ export async function getAllChats() {
   }
 }
 
-export async function getChatMessages(chatId) {
+export async function getChatMessages(chatId: string) {
   try {
     const { data, error } = await supabaseAdmin
       .from('messages')
@@ -277,7 +196,7 @@ export async function getChatMessages(chatId) {
       success: true,
       messages: data
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get messages error:', error)
     return {
       success: false,
@@ -286,7 +205,7 @@ export async function getChatMessages(chatId) {
   }
 }
 
-export async function deleteChat(chatId) {
+export async function deleteChat(chatId: string) {
   try {
     // Delete chat (this will cascade to messages)
     const { error } = await supabaseAdmin
@@ -301,7 +220,7 @@ export async function deleteChat(chatId) {
     return {
       success: true
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Delete chat error:', error)
     return {
       success: false,
@@ -310,44 +229,105 @@ export async function deleteChat(chatId) {
   }
 }
 
-// ============================================
-// DASHBOARD STATISTICS
-// ============================================
-
 export async function getDashboardStats() {
   try {
-    const [usersResult, accountsResult, chatsResult, messagesResult] = await Promise.all([
-      supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true }),
-      supabaseAdmin.from('accounts').select('id', { count: 'exact', head: true }),
-      supabaseAdmin.from('chats').select('id', { count: 'exact', head: true }),
-      supabaseAdmin.from('messages').select('id', { count: 'exact', head: true })
-    ])
+    // Get total users with detailed info for growth calculation
+    const { data: users, error: usersError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, created_at, last_sign_in_at')
 
-    const totalBalance = await supabaseAdmin
+    if (usersError) throw usersError
+
+    // Get total accounts and their balances
+    const { data: accounts, error: accountsError } = await supabaseAdmin
       .from('accounts')
-      .select('balance')
-      .eq('status', 'active')
+      .select('id, balance, currency, created_at, status')
 
-    let totalValue = 0
-    if (totalBalance.data) {
-      totalValue = totalBalance.data.reduce((sum, account) => sum + parseFloat(account.balance), 0)
+    if (accountsError) throw accountsError
+
+    // Get support chats
+    const { data: chats, error: chatsError } = await supabaseAdmin
+      .from('chats')
+      .select('id, created_at, status')
+
+    if (chatsError) {
+      console.warn('Chats table not found, using default value')
     }
+
+    // Get messages count
+    const { data: messages, error: messagesError } = await supabaseAdmin
+      .from('messages')
+      .select('id, created_at')
+
+    if (messagesError) {
+      console.warn('Messages table not found, using default value')
+    }
+
+    // Calculate basic stats
+    const totalUsers = users?.length || 0
+    const totalAccounts = accounts?.filter(acc => acc.status === 'active').length || 0
+    const totalValue = accounts?.reduce((sum, account) => sum + (account.balance || 0), 0) || 0
+    const totalChats = chats?.filter(chat => chat.status === 'active').length || 0
+    const totalMessages = messages?.length || 0
+
+    // Calculate monthly revenue (assuming 1% of total value as monthly revenue)
+    const monthlyRevenue = totalValue * 0.01
+
+    // Calculate growth rate (users created this month vs last month)
+    const now = new Date()
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+
+    const usersThisMonth = users?.filter(user => 
+      new Date(user.created_at) >= thisMonth
+    ).length || 0
+
+    const usersLastMonth = users?.filter(user => 
+      new Date(user.created_at) >= lastMonth && new Date(user.created_at) < thisMonth
+    ).length || 0
+
+    const growthRate = usersLastMonth > 0 ? 
+      ((usersThisMonth - usersLastMonth) / usersLastMonth) * 100 : 
+      (usersThisMonth > 0 ? 100 : 0)
+
+    // Calculate account growth
+    const accountsThisMonth = accounts?.filter(account => 
+      new Date(account.created_at) >= thisMonth
+    ).length || 0
+
+    const accountsLastMonth = accounts?.filter(account => 
+      new Date(account.created_at) >= lastMonth && new Date(account.created_at) < thisMonth
+    ).length || 0
+
+    const accountGrowthRate = accountsLastMonth > 0 ? 
+      ((accountsThisMonth - accountsLastMonth) / accountsLastMonth) * 100 : 
+      (accountsThisMonth > 0 ? 100 : 0)
+
+    // Calculate revenue growth (comparing this month vs last month)
+    const lastMonthValue = accounts?.filter(account => 
+      new Date(account.created_at) < thisMonth
+    ).reduce((sum, account) => sum + (account.balance || 0), 0) || 0
+
+    const revenueGrowthRate = lastMonthValue > 0 ? 
+      ((totalValue - lastMonthValue) / lastMonthValue) * 100 : 
+      (totalValue > 0 ? 100 : 0)
 
     return {
       success: true,
       stats: {
-        totalUsers: usersResult.count || 0,
-        totalAccounts: accountsResult.count || 0,
-        totalChats: chatsResult.count || 0,
-        totalMessages: messagesResult.count || 0,
-        totalValue: totalValue
+        totalUsers,
+        totalAccounts,
+        totalValue,
+        totalChats,
+        totalMessages,
+        monthlyRevenue,
+        growthRate,
+        accountGrowthRate,
+        revenueGrowthRate
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get dashboard stats error:', error)
-    return {
-      success: false,
-      error: error.message
-    }
+    return { success: false, error: error.message }
   }
 }

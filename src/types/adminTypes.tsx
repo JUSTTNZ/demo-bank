@@ -1,3 +1,4 @@
+import { LucideIcon } from 'lucide-react'
 export interface User {
   id: string
   email: string
@@ -20,6 +21,8 @@ export interface DashboardStats {
   pendingChats?: number
   monthlyRevenue?: number
   growthRate?: number
+  accountGrowthRate?: number
+  revenueGrowthRate?: number
 }
 
 export interface Account {
@@ -83,4 +86,37 @@ export interface GetAllUsersResponse {
   success: boolean
   users?: any[]
   error?: string
+}
+
+
+
+export interface StatCardProps {
+  title: string
+  value: string | number
+  icon: LucideIcon
+  color: string
+  trend?: string
+  description?: string
+}
+
+
+export interface Account {
+  id: string
+  account_number: string
+  balance: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Message {
+  id: string
+  chat_id: string
+  content: string
+  sender_type: 'user' | 'admin'
+  created_at: string
+  profiles?: {
+    first_name?: string
+    last_name?: string
+    email: string
+  }
 }
