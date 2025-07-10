@@ -1,15 +1,14 @@
-// src/pages/login.tsx
 import Head from 'next/head'
-import LoginForm from '@/components/loginForm'
+import AdminDashboard from '@/components/adminDashoard'
 
-export default function LoginPage() {
+export default function AdminPage() {
   return (
     <>
       <Head>
-        <title>Login | Demo Bank</title>
+        <title>AdminDashboard | Demo Bank</title>
       </Head>
       <main className="min-h-screen flex items-center justify-center bg-gray-100">
-        <LoginForm />
+        <AdminDashboard />
       </main>
     </>
   )
