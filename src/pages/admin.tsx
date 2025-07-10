@@ -7,7 +7,7 @@ export default function AdminPage() {
       <Head>
         <title>AdminDashboard | Demo Bank</title>
       </Head>
-      <main className="min-h-screen flex items-center justify-center bg-gray-100">
+      <main className="min-h-screen">
         <AdminDashboard />
       </main>
     </>
