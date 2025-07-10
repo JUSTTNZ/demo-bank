@@ -1,6 +1,7 @@
 import { Users, CreditCard, DollarSign, MessageSquare, Activity, Clock } from 'lucide-react'
 import StatCard from '@/components/admin/statCard'
 import { DashboardStats, User } from '@/types/adminTypes'
+import Image from 'next/image'
 
 interface DashboardOverviewProps {
   stats: DashboardStats
@@ -91,7 +92,7 @@ const DashboardOverview = ({ stats, users }: DashboardOverviewProps) => {
                   <div className="flex items-center space-x-4">
                     <div className="relative">
                       {user.avatar_url ? (
-                        <img
+                        <Image
                           src={user.avatar_url}
                           alt={user.full_name || 'User'}
                           className="w-10 h-10 rounded-full object-cover"

@@ -190,7 +190,7 @@ export default function LoginForm() {
           {/* Contact admin message */}
           <div className="text-center">
             <p className="text-gray-600 text-sm">
-              Don't have an account? Contact your administrator for access.
+              Don&apos;t have an account? Contact your administrator for access.
             </p>
           </div>
         </div>

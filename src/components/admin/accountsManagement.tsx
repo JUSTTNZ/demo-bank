@@ -9,6 +9,7 @@ interface Props {
 }
 
 const AccountsManagement: React.FC<Props> = ({ accounts, onRefresh }) => {
+  console.log(accounts, onRefresh)
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
       <div className="p-6">

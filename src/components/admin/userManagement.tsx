@@ -1,6 +1,6 @@
 'use client'
 
-import { Eye, Edit, Trash2, Plus } from 'lucide-react'
+import { Eye, Edit, Trash2,  } from 'lucide-react'
 import React from 'react'
 import { User } from '@/types/adminTypes'
 
@@ -10,6 +10,7 @@ interface Props {
 }
 
 const UsersManagement: React.FC<Props> = ({ users, onRefresh }) => {
+  console.log(onRefresh)
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
       <div className="p-6 border-b border-gray-100">

@@ -51,6 +51,7 @@ export default function AdminDashboard() {
 
       setCurrentUser({ ...user, ...profile })
     } catch (error) {
+      console.log(error)
       toast.error('Authentication failed')
       router.push('/login')
     }
@@ -77,6 +78,7 @@ export default function AdminDashboard() {
       if (chatsData.success) setChats(chatsData.chats)
     } catch (error) {
       toast.error('Failed to load dashboard data')
+      console.log(error)
     } finally {
       setLoading(false)
     }
@@ -88,6 +90,7 @@ export default function AdminDashboard() {
       router.push('/login')
     } catch (error) {
       toast.error('Logout failed')
+      console.log(error)
     }
   }
 

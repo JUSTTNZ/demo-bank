@@ -3,12 +3,12 @@ export interface User {
   email: string
   full_name?: string
   role: string
-  accounts?: any[]
+  accounts?: unknown[]
   created_at: string
   last_sign_in_at?: string
   avatar_url?: string
   phone?: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export interface DashboardStats {

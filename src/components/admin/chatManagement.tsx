@@ -9,6 +9,7 @@ interface Props {
 }
 
 const ChatsManagement: React.FC<Props> = ({ chats, onRefresh }) => {
+  console.log(chats, onRefresh)
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
       <div className="p-6">
