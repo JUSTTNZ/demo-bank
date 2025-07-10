@@ -45,7 +45,7 @@ const Sidebar = ({
       )}
       
       {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-full w-64 bg-white/95 backdrop-blur-md border-r border-gray-200/50 shadow-xl transform transition-all duration-300 z-50 lg:translate-x-0 lg:static lg:shadow-lg ${
+      <div className={`sticky z-30 left-0 top-0 h-full w-64 bg-white/95 backdrop-blur-md border-r border-gray-200/50 shadow-xl transform transition-all duration-300 z-50 lg:translate-x-0 lg:static lg:shadow-lg ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Header */}
