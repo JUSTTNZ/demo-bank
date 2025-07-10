@@ -45,9 +45,11 @@ const Sidebar = ({
       )}
       
       {/* Sidebar */}
-      <div className={`sticky z-30 left-0 top-0 h-full w-64 bg-white/95 backdrop-blur-md border-r border-gray-200/50 shadow-xl transform transition-all duration-300 z-50 lg:translate-x-0 lg:static lg:shadow-lg ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <div
+        className={`fixed top-0 left-0 h-screen w-64 bg-white/95 backdrop-blur-md border-r border-gray-200/50 shadow-xl transition-transform duration-300 ease-in-out z-50
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+          lg:translate-x-0 lg:relative lg:h-auto lg:w-64`}
+      >
         {/* Header */}
         <div className="p-6 border-b border-gray-200/50">
           <div className="flex items-center justify-between">

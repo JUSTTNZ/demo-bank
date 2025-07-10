@@ -33,10 +33,10 @@ export default function AdminDashboard() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       
-      if (!user) {
-        router.push('/login')
-        return
-      }
+      // if (!user) {
+      //   router.push('/login')
+      //   return
+      // }
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -53,7 +53,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.log(error)
       toast.error('Authentication failed')
-      router.push('/login')
+      // router.push('/login')
     }
   }
 
@@ -114,28 +114,29 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        onLogout={handleLogout}
-      />
-      
-      <div className="lg:ml-64 min-h-screen">
-        <Header
-          activeTab={activeTab}
-          currentUser={currentUser}
-          setSidebarOpen={setSidebarOpen}
-        />
-        
-        <main className="p-4 lg:p-8 pb-8">
-          <div className="max-w-7xl mx-auto">
-            {renderContent()}
-          </div>
-        </main>
+   <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+  <Sidebar
+    activeTab={activeTab}
+    setActiveTab={setActiveTab}
+    sidebarOpen={sidebarOpen}
+    setSidebarOpen={setSidebarOpen}
+    onLogout={handleLogout}
+  />
+  
+  <div className="flex-1  min-h-screen">
+    {/* Header and main content */}
+    <Header
+      activeTab={activeTab}
+      currentUser={currentUser}
+      setSidebarOpen={setSidebarOpen}
+    />
+    
+    <main className="p-4 lg:p-8 pb-8">
+      <div className="max-w-7xl mx-auto">
+        {renderContent()}
       </div>
-    </div>
+    </main>
+  </div>
+</div>
   )
 }
