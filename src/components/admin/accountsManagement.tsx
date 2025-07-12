@@ -1,41 +1,88 @@
-import { useState } from 'react'
-import { CreditCard, Search, Filter, DollarSign, User, Calendar, Eye, Edit, Trash2, Plus } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { CreditCard, Search, Filter, DollarSign, User, Calendar, Eye, Edit, Trash2, Plus, RefreshCw, Check, X, AlertCircle } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 // Type definitions
 interface User {
   id: string
   full_name: string
   email: string
-  avatar?: string
+  avatar_url?: string
 }
 
 interface Account {
   id: string
-  user: User
-  account_type: 'checking' | 'savings' | 'investment'
+  user_id: string
+  account_number: string
   balance: number
+  currency?: string
   status: 'active' | 'inactive' | 'suspended'
   created_at: string
   updated_at: string
+  profiles: User | null
 }
 
 interface AccountsManagementProps {
-  accounts: Account[]
-  onRefresh: () => void
+  initialAccounts?: Account[]
+  onRefresh?: () => void
 }
 
-const AccountsManagement = ({ accounts, onRefresh }: AccountsManagementProps) => {
+const AccountsManagement = ({ initialAccounts = [], onRefresh }: AccountsManagementProps) => {
+  const [accounts, setAccounts] = useState<Account[]>(initialAccounts)
+  const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('all')
-  const [selectedType, setSelectedType] = useState('all')
+  const [editingAccount, setEditingAccount] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({
+    balance: '',
+    status: 'active'
+  })
+  const [updateLoading, setUpdateLoading] = useState<string | null>(null)
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error'
+    message: string
+  } | null>(null)
+
+  // Fetch accounts from API
+  const fetchAccounts = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/admin/accounts')
+      const data = await response.json()
+      
+      if (data.success) {
+        setAccounts(data.accounts)
+      } else {
+        toast.error(data.error || 'Failed to fetch accounts')
+      }
+    } catch (error) {
+      toast.error('Failed to fetch accounts')
+      console.error('Error fetching accounts:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Load accounts on component mount
+  useEffect(() => {
+    if (initialAccounts.length === 0) {
+      fetchAccounts()
+    }
+  }, [])
+
+  // Handle refresh
+  const handleRefresh = () => {
+    fetchAccounts()
+    if (onRefresh) onRefresh()
+  }
 
   const filteredAccounts = accounts.filter(account => {
-    const matchesSearch = account.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         account.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = account.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         account.profiles?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         account.account_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          account.id.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = selectedStatus === 'all' || account.status === selectedStatus
-    const matchesType = selectedType === 'all' || account.account_type === selectedType
-    return matchesSearch && matchesStatus && matchesType
+    return matchesSearch && matchesStatus
   })
 
   const getStatusColor = (status: string) => {
@@ -51,19 +98,6 @@ const AccountsManagement = ({ accounts, onRefresh }: AccountsManagementProps) =>
     }
   }
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'checking':
-        return 'bg-blue-100 text-blue-700'
-      case 'savings':
-        return 'bg-green-100 text-green-700'
-      case 'investment':
-        return 'bg-purple-100 text-purple-700'
-      default:
-        return 'bg-gray-100 text-gray-700'
-    }
-  }
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -72,37 +106,144 @@ const AccountsManagement = ({ accounts, onRefresh }: AccountsManagementProps) =>
     })
   }
 
-  const totalBalance = filteredAccounts.reduce((sum, account) => sum + account.balance, 0)
+  const formatCurrency = (amount: number, currency: string = 'USD') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency
+    }).format(amount)
+  }
+
+  const totalBalance = filteredAccounts.reduce((sum, account) => sum + (Number(account.balance) || 0), 0)
   const activeAccounts = filteredAccounts.filter(account => account.status === 'active').length
 
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message })
+    setTimeout(() => setNotification(null), 5000)
+  }
+
   const handleViewAccount = (accountId: string) => {
-    console.log('View account:', accountId)
+    const account = accounts.find(acc => acc.id === accountId)
+    if (account) {
+      alert(`Account Details:\n\nID: ${account.id}\nAccount Number: ${account.account_number}\nUser: ${account.profiles?.full_name}\nBalance: ${formatCurrency(account.balance)}\nStatus: ${account.status}`)
+    }
   }
 
   const handleEditAccount = (accountId: string) => {
-    console.log('Edit account:', accountId)
+    const account = accounts.find(acc => acc.id === accountId)
+    if (account) {
+      setEditingAccount(accountId)
+      setEditForm({
+        balance: account.balance.toString(),
+        status: account.status
+      })
+    }
   }
 
-  const handleDeleteAccount = (accountId: string) => {
-    console.log('Delete account:', accountId)
+  const handleSaveEdit = async (accountId: string) => {
+    setUpdateLoading(accountId)
+    try {
+      const updates = {
+        balance: parseFloat(editForm.balance),
+        status: editForm.status
+      }
+
+      const response = await fetch(`/api/admin/accounts/${accountId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates)
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success('Account updated successfully')
+        setEditingAccount(null)
+        fetchAccounts() // Refresh the accounts list
+      } else {
+        toast.error(data.error || 'Failed to update account')
+      }
+    } catch (error) {
+      toast.error('Error updating account')
+      console.error('Error updating account:', error)
+    } finally {
+      setUpdateLoading(null)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingAccount(null)
+    setEditForm({ balance: '', status: 'active' })
+  }
+
+  const handleDeleteAccount = async (accountId: string) => {
+    const account = accounts.find(acc => acc.id === accountId)
+    if (account && window.confirm(`Are you sure you want to delete the account for ${account.profiles?.full_name}?`)) {
+      setUpdateLoading(accountId)
+      try {
+        const response = await fetch(`/api/admin/accounts/${accountId}`, {
+          method: 'DELETE'
+        })
+
+        const data = await response.json()
+        
+        if (data.success) {
+          toast.success('Account deleted successfully')
+          // Remove account from local state
+          setAccounts(accounts.filter(acc => acc.id !== accountId))
+        } else {
+          toast.error(data.error || 'Failed to delete account')
+        }
+      } catch (error) {
+        toast.error('Error deleting account')
+        console.error('Error deleting account:', error)
+      } finally {
+        setUpdateLoading(null)
+      }
+    }
   }
 
   return (
     <div className="space-y-6">
+      {/* Notification */}
+      {notification && (
+        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+          notification.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+        }`}>
+          <div className="flex items-center space-x-2">
+            {notification.type === 'success' ? (
+              <Check className="w-5 h-5" />
+            ) : (
+              <AlertCircle className="w-5 h-5" />
+            )}
+            <span>{notification.message}</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Accounts Management</h2>
             <p className="text-sm text-gray-500 mt-1">
-              Monitor and manage user accounts and balances
+              Monitor and manage user accounts and balances ({accounts.length} total accounts)
             </p>
           </div>
           <div className="flex items-center space-x-4">
+            <button
+              onClick={handleRefresh}
+              disabled={loading}
+              className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
             <div className="text-right">
               <p className="text-sm text-gray-500">Total Balance</p>
               <p className="text-2xl font-bold text-gray-900">
-                ${totalBalance.toLocaleString()}
+                {formatCurrency(totalBalance)}
               </p>
             </div>
             <div className="text-right">
@@ -122,7 +263,7 @@ const AccountsManagement = ({ accounts, onRefresh }: AccountsManagementProps) =>
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Search accounts by user name, email, or account ID..."
+              placeholder="Search accounts by user name, email, or account number..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
@@ -142,16 +283,6 @@ const AccountsManagement = ({ accounts, onRefresh }: AccountsManagementProps) =>
                 <option value="suspended">Suspended</option>
               </select>
             </div>
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
-            >
-              <option value="all">All Types</option>
-              <option value="checking">Checking</option>
-              <option value="savings">Savings</option>
-              <option value="investment">Investment</option>
-            </select>
           </div>
         </div>
       </div>
@@ -167,9 +298,6 @@ const AccountsManagement = ({ accounts, onRefresh }: AccountsManagementProps) =>
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   User
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Balance
@@ -195,10 +323,10 @@ const AccountsManagement = ({ accounts, onRefresh }: AccountsManagementProps) =>
                       </div>
                       <div className="ml-3">
                         <div className="text-sm font-medium text-gray-900">
-                          {account.id.slice(0, 8)}...
+                          {account.account_number}
                         </div>
                         <div className="text-xs text-gray-500">
-                          ID: {account.id}
+                          ID: {account.id.slice(0, 8)}...
                         </div>
                       </div>
                     </div>
@@ -212,31 +340,50 @@ const AccountsManagement = ({ accounts, onRefresh }: AccountsManagementProps) =>
                       </div>
                       <div className="ml-3">
                         <div className="text-sm font-medium text-gray-900">
-                          {account.user.full_name}
+                          {account.profiles?.full_name || 'Unknown User'}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {account.user.email}
+                          {account.profiles?.email || 'No email'}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(account.account_type)}`}>
-                      {account.account_type.charAt(0).toUpperCase() + account.account_type.slice(1)}
-                    </span>
+                    {editingAccount === account.id ? (
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editForm.balance}
+                          onChange={(e) => setEditForm({...editForm, balance: e.target.value})}
+                          className="w-32 px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <DollarSign className="w-4 h-4 text-green-600 mr-1" />
+                        <span className="text-sm font-medium text-gray-900">
+                          {formatCurrency(account.balance, account.currency)}
+                        </span>
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <DollarSign className="w-4 h-4 text-green-600 mr-1" />
-                      <span className="text-sm font-medium text-gray-900">
-                        {account.balance.toLocaleString()}
+                    {editingAccount === account.id ? (
+                      <select
+                        value={editForm.status}
+                        onChange={(e) => setEditForm({...editForm, status: e.target.value as any})}
+                        className="px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="suspended">Suspended</option>
+                      </select>
+                    ) : (
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(account.status)}`}>
+                        {account.status.charAt(0).toUpperCase() + account.status.slice(1)}
                       </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(account.status)}`}>
-                      {account.status.charAt(0).toUpperCase() + account.status.slice(1)}
-                    </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center text-sm text-gray-500">
@@ -245,29 +392,50 @@ const AccountsManagement = ({ accounts, onRefresh }: AccountsManagementProps) =>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => handleViewAccount(account.id)}
-                        className="text-blue-600 hover:text-blue-800 transition-colors"
-                        title="View Account"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleEditAccount(account.id)}
-                        className="text-emerald-600 hover:text-emerald-800 transition-colors"
-                        title="Edit Account"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteAccount(account.id)}
-                        className="text-red-600 hover:text-red-800 transition-colors"
-                        title="Delete Account"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {editingAccount === account.id ? (
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleSaveEdit(account.id)}
+                          disabled={updateLoading === account.id}
+                          className="text-green-600 hover:text-green-800 transition-colors disabled:opacity-50"
+                          title="Save Changes"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          disabled={updateLoading === account.id}
+                          className="text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50"
+                          title="Cancel"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleViewAccount(account.id)}
+                          className="text-blue-600 hover:text-blue-800 transition-colors"
+                          title="View Account"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditAccount(account.id)}
+                          className="text-emerald-600 hover:text-emerald-800 transition-colors"
+                          title="Edit Account"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAccount(account.id)}
+                          className="text-red-600 hover:text-red-800 transition-colors"
+                          title="Delete Account"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -275,100 +443,25 @@ const AccountsManagement = ({ accounts, onRefresh }: AccountsManagementProps) =>
           </table>
         </div>
         
-        {filteredAccounts.length === 0 && (
+        {loading && (
+          <div className="text-center py-12">
+            <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-4 animate-spin" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Loading accounts...</h3>
+            <p className="text-gray-500">Please wait while we fetch the latest data.</p>
+          </div>
+        )}
+        
+        {!loading && filteredAccounts.length === 0 && (
           <div className="text-center py-12">
             <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No accounts found</h3>
             <p className="text-gray-500">
-              {searchQuery || selectedStatus !== 'all' || selectedType !== 'all'
+              {searchQuery || selectedStatus !== 'all'
                 ? 'Try adjusting your search criteria or filters.'
                 : 'No accounts available to display.'}
             </p>
           </div>
         )}
-      </div>
-    </div>
-  )
-}
-
-// Demo component with sample data
-const Demo = () => {
-  const [accounts] = useState<Account[]>([
-    {
-      id: 'acc_1a2b3c4d5e6f7g8h',
-      user: {
-        id: 'user_1',
-        full_name: 'John Doe',
-        email: 'john.doe@example.com'
-      },
-      account_type: 'checking',
-      balance: 25000,
-      status: 'active',
-      created_at: '2024-01-15T10:00:00Z',
-      updated_at: '2024-01-15T10:00:00Z'
-    },
-    {
-      id: 'acc_2b3c4d5e6f7g8h9i',
-      user: {
-        id: 'user_2',
-        full_name: 'Jane Smith',
-        email: 'jane.smith@example.com'
-      },
-      account_type: 'savings',
-      balance: 75000,
-      status: 'active',
-      created_at: '2024-02-20T14:30:00Z',
-      updated_at: '2024-02-20T14:30:00Z'
-    },
-    {
-      id: 'acc_3c4d5e6f7g8h9i0j',
-      user: {
-        id: 'user_3',
-        full_name: 'Michael Johnson',
-        email: 'michael.johnson@example.com'
-      },
-      account_type: 'investment',
-      balance: 150000,
-      status: 'inactive',
-      created_at: '2024-03-10T09:15:00Z',
-      updated_at: '2024-03-10T09:15:00Z'
-    },
-    {
-      id: 'acc_4d5e6f7g8h9i0j1k',
-      user: {
-        id: 'user_4',
-        full_name: 'Sarah Williams',
-        email: 'sarah.williams@example.com'
-      },
-      account_type: 'checking',
-      balance: 12500,
-      status: 'suspended',
-      created_at: '2024-04-05T16:45:00Z',
-      updated_at: '2024-04-05T16:45:00Z'
-    },
-    {
-      id: 'acc_5e6f7g8h9i0j1k2l',
-      user: {
-        id: 'user_5',
-        full_name: 'David Brown',
-        email: 'david.brown@example.com'
-      },
-      account_type: 'savings',
-      balance: 89000,
-      status: 'active',
-      created_at: '2024-05-12T11:20:00Z',
-      updated_at: '2024-05-12T11:20:00Z'
-    }
-  ])
-
-  const handleRefresh = () => {
-    console.log('Refreshing accounts...')
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 p-4">
-      <div className="max-w-7xl mx-auto">
-        <AccountsManagement accounts={accounts} onRefresh={handleRefresh} />
       </div>
     </div>
   )
