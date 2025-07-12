@@ -29,11 +29,10 @@ interface UsersManagementProps {
 }
 
 const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps) => {
-  const [users, setUsers] = useState<User[]>(initialUsers)
+  const [users, setUsers] = useState<User[]>(initialUsers.filter(user => user.role === 'user'))
   const [loading, setLoading] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedRole, setSelectedRole] = useState('all')
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showActions, setShowActions] = useState<string | null>(null)
 
@@ -45,7 +44,9 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
       const data = await response.json()
       
       if (data.success) {
-        setUsers(data.users)
+        // Filter out admin users, only show regular users
+        const regularUsers = data.users.filter((user: User) => user.role === 'user')
+        setUsers(regularUsers)
       } else {
         toast.error(data.error || 'Failed to fetch users')
       }
@@ -73,8 +74,7 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesRole = selectedRole === 'all' || user.role === selectedRole
-    return matchesSearch && matchesRole
+    return matchesSearch
   })
 
   const handleDeleteUser = async (userId: string, userEmail: string) => {
@@ -131,10 +131,12 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
     }
   }
 
-  const handleUserCreated = () => {
-    // Refresh users list after successful creation
-    fetchUsers()
-    setShowCreateModal(false)
+  const handleUserCreated = async () => {
+    // Add a small delay to ensure the user is fully created in the database
+    setTimeout(async () => {
+      await fetchUsers()
+      setShowCreateModal(false)
+    }, 1000)
   }
 
   const formatDate = (dateString: string) => {
@@ -166,7 +168,7 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Users Management</h2>
             <p className="text-sm text-gray-500 mt-1">
-              Manage user accounts, roles, and permissions ({users.length} total users)
+              Manage user accounts and permissions ({users.length} total users)
             </p>
           </div>
           <div className="flex items-center space-x-3">
@@ -189,7 +191,7 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Search Filter */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-6">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
@@ -201,18 +203,6 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
             />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Filter className="w-4 h-4 text-gray-400" />
-            <select
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
-            >
-              <option value="all">All Roles</option>
-              <option value="user">Users</option>
-              <option value="admin">Admins</option>
-            </select>
           </div>
         </div>
       </div>
@@ -231,9 +221,6 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     User
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Accounts
@@ -280,15 +267,6 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
                           )}
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
-                        user.role === 'admin' 
-                          ? 'bg-purple-100 text-purple-800' 
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        {user.role}
-                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -400,12 +378,12 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
             <p className="text-gray-500 mb-4">
-              {searchQuery || selectedRole !== 'all' 
-                ? 'Try adjusting your search or filter criteria' 
+              {searchQuery 
+                ? 'Try adjusting your search criteria' 
                 : 'Get started by creating your first user'
               }
             </p>
-            {!searchQuery && selectedRole === 'all' && (
+            {!searchQuery && (
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all duration-200"

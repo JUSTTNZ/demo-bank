@@ -97,6 +97,8 @@ export interface StatCardProps {
   color: string
   trend?: string
   description?: string
+  trendIcon?: LucideIcon
+  trendColor?: string
 }
 
 

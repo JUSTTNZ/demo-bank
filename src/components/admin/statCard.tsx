@@ -1,7 +1,15 @@
-import { TrendingUp, TrendingDown } from 'lucide-react'
 import { StatCardProps } from '@/types/adminTypes'
 
-const StatCard = ({ title, value, icon: Icon, color, trend, description }: StatCardProps) => {
+const StatCard = ({ 
+  title, 
+  value, 
+  icon: Icon, 
+  color, 
+  trend, 
+  description,
+  trendIcon: TrendIcon,
+  trendColor 
+}: StatCardProps) => {
   const isPositiveTrend = trend && !trend.startsWith('-')
   
   return (
@@ -15,17 +23,13 @@ const StatCard = ({ title, value, icon: Icon, color, trend, description }: StatC
           <div className={`p-3 rounded-xl ${color} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
             <Icon className="w-6 h-6 text-white" />
           </div>
-          {trend && (
+          {trend && TrendIcon && (
             <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${
               isPositiveTrend 
                 ? 'bg-green-100 text-green-700' 
                 : 'bg-red-100 text-red-700'
             }`}>
-              {isPositiveTrend ? (
-                <TrendingUp className="w-3 h-3 mr-1" />
-              ) : (
-                <TrendingDown className="w-3 h-3 mr-1" />
-              )}
+              <TrendIcon className={`w-3 h-3 mr-1 ${trendColor || (isPositiveTrend ? 'text-green-600' : 'text-red-600')}`} />
               {trend}
             </div>
           )}
