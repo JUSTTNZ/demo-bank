@@ -59,7 +59,7 @@ export interface NewUser {
 export interface StatCardProps {
   title: string
   value: string | number
-  icon: React.ElementType
+  icon: LucideIcon
   color: string
   trend?: string
   description?: string
