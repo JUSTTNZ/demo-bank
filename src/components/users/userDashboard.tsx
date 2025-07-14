@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
-import logo from '../../../assets/images/hero.png';
 import { 
   Menu, 
   X, 
@@ -24,7 +22,11 @@ import {
   Headphones,
   Info,
   LogOut,
-  LucideIcon
+  LucideIcon,
+  CheckCircle,
+  Clock,
+  ArrowUpRight,
+  ArrowDownRight
 } from 'lucide-react';
 
 // Types
@@ -47,9 +49,40 @@ interface QuickAction {
   key: string;
 }
 
+interface Transaction {
+  id: string;
+  type: 'credit' | 'debit';
+  amount: number;
+  description: string;
+  date: string;
+  status: 'completed' | 'pending' | 'failed';
+  category: string;
+}
+
+interface Account {
+  id: string;
+  account_number: string;
+  balance: number;
+  currency: string;
+  type: 'savings' | 'checking' | 'investment';
+  status: 'active' | 'disabled' | 'suspended';
+}
+
+interface UserProfile {
+  id: string;
+  full_name: string;
+  email: string;
+  avatar_url?: string;
+  accounts: Account[];
+  transactions: Transaction[];
+}
+
 interface Translation {
   goodMorning: string;
+  goodAfternoon: string;
+  goodEvening: string;
   accountDisabled: string;
+  accountActive: string;
   availableBalance: string;
   ledgerBalance: string;
   exchangeRates: string;
@@ -77,53 +110,103 @@ interface Translation {
   support: string;
   security: string;
   notifications: string;
+  viewAll: string;
+  loading: string;
+  error: string;
+  retry: string;
 }
 
-interface HeaderProps {
-  currentLanguage: string;
-  setCurrentLanguage: (lang: string) => void;
-  isMenuOpen: boolean;
-  setIsMenuOpen: (isOpen: boolean) => void;
-  t: Translation;
-}
+// Mock API functions
+const mockUserApi = {
+  getUserProfile: async (): Promise<UserProfile> => {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    return {
+      id: 'user_123',
+      full_name: 'John Doe',
+      email: 'john.doe@example.com',
+      avatar_url: 'https://ui-avatars.com/api/?name=John+Doe&background=0D8ABC&color=fff',
+      accounts: [
+        {
+          id: 'acc_1',
+          account_number: '123456789',
+          balance: 25750.00,
+          currency: 'USD',
+          type: 'checking',
+          status: 'active'
+        },
+        {
+          id: 'acc_2',
+          account_number: '987654321',
+          balance: 15000.00,
+          currency: 'USD',
+          type: 'savings',
+          status: 'active'
+        }
+      ],
+      transactions: [
+        {
+          id: 'txn_1',
+          type: 'credit',
+          amount: 2500.00,
+          description: 'Salary Credit',
+          date: '2024-01-15T10:30:00Z',
+          status: 'completed',
+          category: 'Income'
+        },
+        {
+          id: 'txn_2',
+          type: 'debit',
+          amount: 150.00,
+          description: 'Grocery Shopping',
+          date: '2024-01-14T14:20:00Z',
+          status: 'completed',
+          category: 'Shopping'
+        },
+        {
+          id: 'txn_3',
+          type: 'debit',
+          amount: 89.99,
+          description: 'Netflix Subscription',
+          date: '2024-01-13T09:15:00Z',
+          status: 'completed',
+          category: 'Entertainment'
+        },
+        {
+          id: 'txn_4',
+          type: 'credit',
+          amount: 500.00,
+          description: 'Freelance Payment',
+          date: '2024-01-12T16:45:00Z',
+          status: 'completed',
+          category: 'Income'
+        },
+        {
+          id: 'txn_5',
+          type: 'debit',
+          amount: 75.00,
+          description: 'Utility Bill',
+          date: '2024-01-11T11:30:00Z',
+          status: 'pending',
+          category: 'Bills'
+        }
+      ]
+    };
+  },
 
-interface MenuButtonProps {
-  icon: LucideIcon;
-  text: string;
-}
-
-interface MobileMenuItemProps {
-  icon: LucideIcon;
-  text: string;
-}
-
-interface WelcomeSectionProps {
-  t: Translation;
-}
-
-interface BalanceSectionProps {
-  t: Translation;
-}
-
-interface ExchangeRatesProps {
-  t: Translation;
-}
-
-interface QuickActionsProps {
-  t: Translation;
-  setShowModal: (action: QuickAction | null) => void;
-}
-
-interface RecentActivityProps {
-  t: Translation;
-}
-
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  action: QuickAction | null;
-  t: Translation;
-}
+  getExchangeRates: async (): Promise<ExchangeRate[]> => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return [
+      { currency: 'USD', rate: 1.0000, change: 0.0012, trend: 'up' },
+      { currency: 'EUR', rate: 0.8456, change: -0.0023, trend: 'down' },
+      { currency: 'GBP', rate: 0.7834, change: 0.0045, trend: 'up' },
+      { currency: 'JPY', rate: 149.23, change: -0.34, trend: 'down' },
+      { currency: 'CAD', rate: 1.3456, change: 0.0078, trend: 'up' }
+    ];
+  }
+};
 
 // Language options with flags
 const languages: Language[] = [
@@ -139,9 +222,12 @@ const languages: Language[] = [
 const translations: Record<string, Translation> = {
   en: {
     goodMorning: 'Good Morning',
+    goodAfternoon: 'Good Afternoon',
+    goodEvening: 'Good Evening',
     accountDisabled: 'Account Disabled',
+    accountActive: 'Account Active',
     availableBalance: 'Available Balance',
-    ledgerBalance: 'Ledger Balance',
+    ledgerBalance: 'Total Balance',
     exchangeRates: 'Exchange Rates',
     quickActions: 'Quick Actions',
     recentActivity: 'Recent Activity',
@@ -166,13 +252,20 @@ const translations: Record<string, Translation> = {
     statements: 'Statements',
     support: 'Support',
     security: 'Security',
-    notifications: 'Notifications'
+    notifications: 'Notifications',
+    viewAll: 'View All',
+    loading: 'Loading...',
+    error: 'Error loading data',
+    retry: 'Retry'
   },
   fr: {
     goodMorning: 'Bonjour',
+    goodAfternoon: 'Bon Après-midi',
+    goodEvening: 'Bonsoir',
     accountDisabled: 'Compte Désactivé',
+    accountActive: 'Compte Actif',
     availableBalance: 'Solde Disponible',
-    ledgerBalance: 'Solde du Grand Livre',
+    ledgerBalance: 'Solde Total',
     exchangeRates: 'Taux de Change',
     quickActions: 'Actions Rapides',
     recentActivity: 'Activité Récente',
@@ -197,160 +290,90 @@ const translations: Record<string, Translation> = {
     statements: 'Relevés',
     support: 'Support',
     security: 'Sécurité',
-    notifications: 'Notifications'
-  },
-  es: {
-    goodMorning: 'Buenos Días',
-    accountDisabled: 'Cuenta Deshabilitada',
-    availableBalance: 'Saldo Disponible',
-    ledgerBalance: 'Saldo del Libro Mayor',
-    exchangeRates: 'Tipos de Cambio',
-    quickActions: 'Acciones Rápidas',
-    recentActivity: 'Actividad Reciente',
-    noRecentActivity: 'No hay actividad reciente en este momento',
-    profile: 'Perfil',
-    settings: 'Configuración',
-    customerCare: 'Atención al Cliente',
-    about: 'Acerca de',
-    logout: 'Cerrar Sesión',
-    sendMoney: 'Enviar Dinero',
-    transactionDetails: 'Detalles Transacción',
-    payBills: 'Pagar Facturas',
-    wealthManagement: 'Gestión Patrimonial',
-    chequesCards: 'Cheques y Tarjetas',
-    loans: 'Préstamos',
-    investments: 'Inversiones',
-    insurance: 'Seguros',
-    forex: 'Trading Forex',
-    savings: 'Ahorros',
-    deposits: 'Depósitos Fijos',
-    mobile: 'Banca Móvil',
-    statements: 'Estados de Cuenta',
-    support: 'Soporte',
-    security: 'Seguridad',
-    notifications: 'Notificaciones'
-  },
-  pt: {
-    goodMorning: 'Bom Dia',
-    accountDisabled: 'Conta Desabilitada',
-    availableBalance: 'Saldo Disponível',
-    ledgerBalance: 'Saldo do Razão',
-    exchangeRates: 'Taxas de Câmbio',
-    quickActions: 'Ações Rápidas',
-    recentActivity: 'Atividade Recente',
-    noRecentActivity: 'Nenhuma atividade recente no momento',
-    profile: 'Perfil',
-    settings: 'Configurações',
-    customerCare: 'Atendimento ao Cliente',
-    about: 'Sobre',
-    logout: 'Sair',
-    sendMoney: 'Enviar Dinheiro',
-    transactionDetails: 'Detalhes da Transação',
-    payBills: 'Pagar Contas',
-    wealthManagement: 'Gestão Patrimonial',
-    chequesCards: 'Cheques e Cartões',
-    loans: 'Empréstimos',
-    investments: 'Investimentos',
-    insurance: 'Seguros',
-    forex: 'Trading Forex',
-    savings: 'Poupança',
-    deposits: 'Depósitos Fixos',
-    mobile: 'Banco Móvel',
-    statements: 'Extratos',
-    support: 'Suporte',
-    security: 'Segurança',
-    notifications: 'Notificações'
-  },
-  nl: {
-    goodMorning: 'Goedemorgen',
-    accountDisabled: 'Account Uitgeschakeld',
-    availableBalance: 'Beschikbaar Saldo',
-    ledgerBalance: 'Grootboeksaldo',
-    exchangeRates: 'Wisselkoersen',
-    quickActions: 'Snelle Acties',
-    recentActivity: 'Recente Activiteit',
-    noRecentActivity: 'Geen recente activiteit op dit moment',
-    profile: 'Profiel',
-    settings: 'Instellingen',
-    customerCare: 'Klantenservice',
-    about: 'Over',
-    logout: 'Uitloggen',
-    sendMoney: 'Geld Verzenden',
-    transactionDetails: 'Transactie Details',
-    payBills: 'Rekeningen Betalen',
-    wealthManagement: 'Vermogensbeheer',
-    chequesCards: 'Cheques & Kaarten',
-    loans: 'Leningen',
-    investments: 'Investeringen',
-    insurance: 'Verzekeringen',
-    forex: 'Forex Trading',
-    savings: 'Spaarrekening',
-    deposits: 'Vaste Deposito',
-    mobile: 'Mobiel Bankieren',
-    statements: 'Afschriften',
-    support: 'Ondersteuning',
-    security: 'Beveiliging',
-    notifications: 'Meldingen'
-  },
-  ar: {
-    goodMorning: 'صباح الخير',
-    accountDisabled: 'الحساب معطل',
-    availableBalance: 'الرصيد المتاح',
-    ledgerBalance: 'رصيد دفتر الأستاذ',
-    exchangeRates: 'أسعار الصرف',
-    quickActions: 'إجراءات سريعة',
-    recentActivity: 'النشاط الأخير',
-    noRecentActivity: 'لا توجد أنشطة حديثة في الوقت الحالي',
-    profile: 'الملف الشخصي',
-    settings: 'الإعدادات',
-    customerCare: 'خدمة العملاء',
-    about: 'حول',
-    logout: 'تسجيل الخروج',
-    sendMoney: 'إرسال نقود',
-    transactionDetails: 'تفاصيل المعاملة',
-    payBills: 'دفع الفواتير',
-    wealthManagement: 'إدارة الثروة',
-    chequesCards: 'الشيكات والبطاقات',
-    loans: 'القروض',
-    investments: 'الاستثمارات',
-    insurance: 'التأمين',
-    forex: 'تداول العملات',
-    savings: 'المدخرات',
-    deposits: 'الودائع الثابتة',
-    mobile: 'الخدمات المصرفية المحمولة',
-    statements: 'الكشوفات',
-    support: 'الدعم',
-    security: 'الأمان',
-    notifications: 'الإشعارات'
+    notifications: 'Notifications',
+    viewAll: 'Voir Tout',
+    loading: 'Chargement...',
+    error: 'Erreur de chargement',
+    retry: 'Réessayer'
   }
 };
 
-// Mock exchange rate data - replace with real API
-const mockExchangeRates: ExchangeRate[] = [
-  { currency: 'USD', rate: 1.0000, change: 0.0012, trend: 'up' },
-  { currency: 'EUR', rate: 0.8456, change: -0.0023, trend: 'down' },
-  { currency: 'GBP', rate: 0.7834, change: 0.0045, trend: 'up' },
-  { currency: 'JPY', rate: 149.23, change: -0.34, trend: 'down' },
-  { currency: 'CAD', rate: 1.3456, change: 0.0078, trend: 'up' }
-];
+// Utility functions
+const getGreeting = (t: Translation) => {
+  const hour = new Date().getHours();
+  if (hour < 12) return t.goodMorning;
+  if (hour < 17) return t.goodAfternoon;
+  return t.goodEvening;
+};
+
+const formatCurrency = (amount: number, currency: string = 'USD') => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency
+  }).format(amount);
+};
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+// Custom hook for exchange rates
+const useExchangeRates = () => {
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const rates = await mockUserApi.getExchangeRates();
+        setExchangeRates(rates);
+      } catch (err) {
+        setError('Failed to load exchange rates');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  return { exchangeRates, loading, error };
+};
 
 // Header Component
-const Header: React.FC<HeaderProps> = ({ currentLanguage, setCurrentLanguage, isMenuOpen, setIsMenuOpen, t }) => {
+const Header = ({ currentLanguage, setCurrentLanguage, isMenuOpen, setIsMenuOpen, t, userProfile }: any) => {
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-24">
+        <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <div className=" text-white px-3 py-2 rounded-lg font-bold text-lg">
-                <Image src={logo} alt="Demo Bank Logo" width={90} height={90} className="inline-block mr-2" />
+            <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg font-bold text-lg">
+              DemoBank
             </div>
           </div>
 
-          {/* Desktop Navigation */}
+          {/* User Info & Controls */}
           <div className="hidden md:flex items-center space-x-4">
+            {/* User Avatar */}
+            <div className="flex items-center space-x-3">
+              <img 
+                src={userProfile?.avatar_url || 'https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff'} 
+                alt="User Avatar" 
+                className="w-8 h-8 rounded-full"
+              />
+              <span className="text-sm font-medium text-gray-700">{userProfile?.full_name}</span>
+            </div>
+
             {/* Language Dropdown */}
             <div className="relative">
               <button
@@ -382,14 +405,15 @@ const Header: React.FC<HeaderProps> = ({ currentLanguage, setCurrentLanguage, is
               )}
             </div>
 
-            {/* Desktop Menu Items */}
-            <div className="flex items-center space-x-1">
-              <MenuButton icon={User} text={t.profile} />
-              <MenuButton icon={Settings} text={t.settings} />
-              <MenuButton icon={Headphones} text={t.customerCare} />
-              <MenuButton icon={Info} text={t.about} />
-              <MenuButton icon={LogOut} text={t.logout} />
-            </div>
+            {/* Menu Items */}
+            <button className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+              <Settings size={16} />
+              <span>{t.settings}</span>
+            </button>
+            <button className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+              <LogOut size={16} />
+              <span>{t.logout}</span>
+            </button>
           </div>
 
           {/* Mobile menu button */}
@@ -408,7 +432,17 @@ const Header: React.FC<HeaderProps> = ({ currentLanguage, setCurrentLanguage, is
       {isMenuOpen && (
         <div className="md:hidden bg-white border-t border-gray-200 shadow-lg">
           <div className="px-2 pt-2 pb-3 space-y-1">
-            {/* Language selector for mobile */}
+            {/* User info */}
+            <div className="flex items-center space-x-3 px-3 py-2 mb-2">
+              <img 
+                src={userProfile?.avatar_url || 'https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff'} 
+                alt="User Avatar" 
+                className="w-8 h-8 rounded-full"
+              />
+              <span className="text-sm font-medium text-gray-700">{userProfile?.full_name}</span>
+            </div>
+
+            {/* Language selector */}
             <div className="border-b border-gray-200 pb-2 mb-2">
               <div className="text-sm font-medium text-gray-700 mb-2">Language</div>
               <div className="grid grid-cols-2 gap-2">
@@ -432,12 +466,15 @@ const Header: React.FC<HeaderProps> = ({ currentLanguage, setCurrentLanguage, is
               </div>
             </div>
             
-            {/* Mobile menu items */}
-            <MobileMenuItem icon={User} text={t.profile} />
-            <MobileMenuItem icon={Settings} text={t.settings} />
-            <MobileMenuItem icon={Headphones} text={t.customerCare} />
-            <MobileMenuItem icon={Info} text={t.about} />
-            <MobileMenuItem icon={LogOut} text={t.logout} />
+            {/* Menu items */}
+            <button className="flex items-center space-x-3 w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+              <Settings size={20} />
+              <span>{t.settings}</span>
+            </button>
+            <button className="flex items-center space-x-3 w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+              <LogOut size={20} />
+              <span>{t.logout}</span>
+            </button>
           </div>
         </div>
       )}
@@ -445,45 +482,42 @@ const Header: React.FC<HeaderProps> = ({ currentLanguage, setCurrentLanguage, is
   );
 };
 
-const MenuButton: React.FC<MenuButtonProps> = ({ icon: Icon, text }) => (
-  <button className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
-    <Icon size={16} />
-    <span>{text}</span>
-  </button>
-);
-
-const MobileMenuItem: React.FC<MobileMenuItemProps> = ({ icon: Icon, text }) => (
-  <button className="flex items-center space-x-3 w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
-    <Icon size={20} />
-    <span>{text}</span>
-  </button>
-);
-
 // Welcome Section Component
-const WelcomeSection: React.FC<WelcomeSectionProps> = ({ t }) => (
-  <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-6 mb-6 animate-fadeIn">
-    <div className="flex items-center justify-between">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          {t.goodMorning},
-        </h1>
-        <p className="text-xl text-gray-700 font-semibold">John Doe</p>
-      </div>
-      <div className="flex items-center space-x-2 bg-red-50 text-red-700 px-4 py-2 rounded-lg border border-red-200">
-        <AlertTriangle size={20} className="text-red-500" />
-        <span className="font-medium">{t.accountDisabled}</span>
+const WelcomeSection = ({ t, userProfile }: any) => {
+  const primaryAccount = userProfile?.accounts?.[0];
+  const isAccountActive = primaryAccount?.status === 'active';
+
+  return (
+    <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-6 mb-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {getGreeting(t)},
+          </h1>
+          <p className="text-xl text-gray-700 font-semibold">{userProfile?.full_name}</p>
+          <p className="text-sm text-gray-600 mt-1">{userProfile?.email}</p>
+        </div>
+        <div className={`flex items-center space-x-2 px-4 py-2 rounded-lg border ${
+          isAccountActive 
+            ? 'bg-green-50 text-green-700 border-green-200' 
+            : 'bg-red-50 text-red-700 border-red-200'
+        }`}>
+          {isAccountActive ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
+          <span className="font-medium">
+            {isAccountActive ? t.accountActive : t.accountDisabled}
+          </span>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Balance Section Component
-const BalanceSection: React.FC<BalanceSectionProps> = ({ t }) => {
-  const [showAvailableBalance, setShowAvailableBalance] = useState(false);
-  const [showLedgerBalance, setShowLedgerBalance] = useState(false);
-
-  const availableBalance = 25750.00;
-  const ledgerBalance = 28350.00;
+const BalanceSection = ({ t, userProfile }: any) => {
+  const [showBalance, setShowBalance] = useState(false);
+  
+  const primaryAccount = userProfile?.accounts?.[0];
+  const totalBalance = userProfile?.accounts?.reduce((sum: number, account: Account) => sum + account.balance, 0) || 0;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -491,59 +525,78 @@ const BalanceSection: React.FC<BalanceSectionProps> = ({ t }) => {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">{t.availableBalance}</h3>
           <button
-            onClick={() => setShowAvailableBalance(!showAvailableBalance)}
+            onClick={() => setShowBalance(!showBalance)}
             className="text-gray-500 hover:text-gray-700 transition-colors"
           >
-            {showAvailableBalance ? <EyeOff size={20} /> : <Eye size={20} />}
+            {showBalance ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
-        <div className="text-3xl font-bold text-green-600">
-          {showAvailableBalance ? `$${availableBalance.toLocaleString()}` : '••••••'}
+        <div className="text-3xl font-bold text-green-600 mb-2">
+          {showBalance ? formatCurrency(primaryAccount?.balance || 0) : '••••••'}
         </div>
+        <p className="text-sm text-gray-600">
+          Account: {primaryAccount?.account_number ? `****${primaryAccount.account_number.slice(-4)}` : 'N/A'}
+        </p>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">{t.ledgerBalance}</h3>
           <button
-            onClick={() => setShowLedgerBalance(!showLedgerBalance)}
+            onClick={() => setShowBalance(!showBalance)}
             className="text-gray-500 hover:text-gray-700 transition-colors"
           >
-            {showLedgerBalance ? <EyeOff size={20} /> : <Eye size={20} />}
+            {showBalance ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
-        <div className="text-3xl font-bold text-green-600">
-          {showLedgerBalance ? `$${ledgerBalance.toLocaleString()}` : '••••••'}
+        <div className="text-3xl font-bold text-green-600 mb-2">
+          {showBalance ? formatCurrency(totalBalance) : '••••••'}
         </div>
+        <p className="text-sm text-gray-600">
+          {userProfile?.accounts?.length} Account{userProfile?.accounts?.length !== 1 ? 's' : ''}
+        </p>
       </div>
     </div>
   );
 };
 
 // Exchange Rates Component
-const ExchangeRates: React.FC<ExchangeRatesProps> = ({ t }) => {
-  const [rates, setRates] = useState(mockExchangeRates);
+const ExchangeRates = ({ t }: { t: Translation }) => {
+  const { exchangeRates, loading, error } = useExchangeRates();
 
-  useEffect(() => {
-    // Simulate real-time updates
-    const interval = setInterval(() => {
-      setRates(prevRates => 
-        prevRates.map(rate => ({
-          ...rate,
-          change: (Math.random() - 0.5) * 0.01,
-          trend: Math.random() > 0.5 ? 'up' : 'down'
-        }))
-      );
-    }, 5000);
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t.exchangeRates}</h3>
+        <div className="text-center py-4">
+          <div className="text-gray-600">{t.loading}</div>
+        </div>
+      </div>
+    );
+  }
 
-    return () => clearInterval(interval);
-  }, []);
+  if (error) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t.exchangeRates}</h3>
+        <div className="text-center py-4">
+          <div className="text-red-500 mb-2">{error}</div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="text-green-600 hover:text-green-700"
+          >
+            {t.retry}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">{t.exchangeRates}</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {rates.map((rate) => (
+        {exchangeRates.map((rate) => (
           <div key={rate.currency} className="text-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
             <div className="font-semibold text-gray-900">{rate.currency}</div>
             <div className="text-lg font-bold text-gray-800">{rate.rate}</div>
@@ -561,7 +614,7 @@ const ExchangeRates: React.FC<ExchangeRatesProps> = ({ t }) => {
 };
 
 // Quick Actions Component
-const QuickActions: React.FC<QuickActionsProps> = ({ t, setShowModal }) => {
+const QuickActions = ({ t, setShowModal }: any) => {
   const actions: QuickAction[] = [
     { icon: Send, name: t.sendMoney, key: 'sendMoney' },
     { icon: FileText, name: t.transactionDetails, key: 'transactionDetails' },
@@ -603,25 +656,93 @@ const QuickActions: React.FC<QuickActionsProps> = ({ t, setShowModal }) => {
 };
 
 // Recent Activity Component
-const RecentActivity: React.FC<RecentActivityProps> = ({ t }) => (
-  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-    <h3 className="text-lg font-semibold text-gray-900 mb-4">{t.recentActivity}</h3>
-    <div className="text-center py-8">
-      <div className="text-gray-400 mb-2">
-        <FileText size={48} className="mx-auto" />
+const RecentActivity = ({ t, transactions }: any) => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'text-green-600';
+      case 'pending': return 'text-yellow-600';
+      case 'failed': return 'text-red-600';
+      default: return 'text-gray-600';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <CheckCircle size={16} />;
+      case 'pending': return <Clock size={16} />;
+      case 'failed': return <AlertTriangle size={16} />;
+      default: return <Clock size={16} />;
+    }
+  };
+
+  if (!transactions || transactions.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t.recentActivity}</h3>
+        <div className="text-center py-8">
+          <div className="text-gray-400 mb-2">
+            <FileText size={48} className="mx-auto" />
+          </div>
+          <p className="text-gray-600">{t.noRecentActivity}</p>
+        </div>
       </div>
-      <p className="text-gray-600">{t.noRecentActivity}</p>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">{t.recentActivity}</h3>
+        <button className="text-green-600 hover:text-green-700 text-sm font-medium">
+          {t.viewAll}
+        </button>
+      </div>
+      
+      <div className="space-y-4">
+        {transactions.slice(0, 5).map((transaction: Transaction) => (
+          <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            <div className="flex items-center space-x-3">
+              <div className={`p-2 rounded-full ${
+                transaction.type === 'credit' ? 'bg-green-100' : 'bg-red-100'
+              }`}>
+                {transaction.type === 'credit' ? 
+                  <ArrowDownRight size={16} className="text-green-600" /> : 
+                  <ArrowUpRight size={16} className="text-red-600" />
+                }
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">{transaction.description}</p>
+                <p className="text-sm text-gray-600">{transaction.category}</p>
+              </div>
+            </div>
+            
+            <div className="text-right">
+              <p className={`font-semibold ${
+                transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {transaction.type === 'credit' ? '+' : '-'}{formatCurrency(transaction.amount)}
+              </p>
+              <div className="flex items-center space-x-1 text-sm">
+                <span className={getStatusColor(transaction.status)}>
+                  {getStatusIcon(transaction.status)}
+                </span>
+                <span className="text-gray-500">{formatDate(transaction.date)}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Modal Component
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, action, t }) => {
+const Modal = ({ isOpen, onClose, action, t }: any) => {
   if (!isOpen || !action) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-md w-full p-6 animate-fadeIn">
+      <div className="bg-white rounded-xl max-w-md w-full p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">{action.name}</h3>
           <button
@@ -663,8 +784,51 @@ export default function UserDashboard() {
   const [currentLanguage, setCurrentLanguage] = useState('en');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showModal, setShowModal] = useState<QuickAction | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const t = translations[currentLanguage];
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        setLoading(true);
+        const profile = await mockUserApi.getUserProfile();
+        setUserProfile(profile);
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
+
+  if (!userProfile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Error loading profile</h3>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -674,14 +838,15 @@ export default function UserDashboard() {
         isMenuOpen={isMenuOpen}
         setIsMenuOpen={setIsMenuOpen}
         t={t}
+        userProfile={userProfile}
       />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <WelcomeSection t={t} />
-        <BalanceSection t={t} />
+        <WelcomeSection t={t} userProfile={userProfile} />
+        <BalanceSection t={t} userProfile={userProfile} />
         <ExchangeRates t={t} />
         <QuickActions t={t} setShowModal={setShowModal} />
-        <RecentActivity t={t} />
+        <RecentActivity t={t} transactions={userProfile.transactions} />
       </main>
 
       <Modal 
@@ -690,17 +855,6 @@ export default function UserDashboard() {
         action={showModal}
         t={t}
       />
-
-      <style jsx global>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-      `}</style>
     </div>
   );
 }
