@@ -1,7 +1,7 @@
 import React from 'react';
-import { FileText, AlertTriangle } from 'lucide-react';
-import { useExchangeRates } from '../../hooks/useExchangeRates';
-import { Translation } from './types';
+import { FileText, AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { Translation } from '@/types/userTypes';
 
 interface ExchangeRatesProps {
   t: Translation;
