@@ -21,12 +21,12 @@ export interface QuickAction {
 
 export interface Transaction {
   id: string;
-  type: 'credit' | 'debit';
-  amount: number;
-  description: string;
   date: string;
+  amount: number;
+  currency: string;
+  type: 'credit' | 'debit';
+  description: string;
   status: 'completed' | 'pending' | 'failed';
-  category: string;
 }
 
 export interface Account {
@@ -34,8 +34,7 @@ export interface Account {
   account_number: string;
   balance: number;
   currency: string;
-  type: 'savings' | 'checking' | 'investment';
-  status: 'active' | 'disabled' | 'suspended';
+  status: 'disabled' | 'suspended';
 }
 
 export interface UserProfile {
@@ -44,7 +43,6 @@ export interface UserProfile {
   email: string;
   avatar_url?: string;
   accounts: Account[];
-  transactions: Transaction[];
 }
 
 export interface Translation {
