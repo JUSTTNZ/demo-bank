@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import UserDashboard from '@/components/userDashboard'
 
-export default function AdminPage() {
+export default function UserPage() {
   return (
     <>
       <Head>
