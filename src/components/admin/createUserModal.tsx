@@ -3,12 +3,7 @@ import { X, User, Mail, Lock, Shield, CreditCard, DollarSign } from 'lucide-reac
 import toast from 'react-hot-toast'
 import { NewUser } from '@/types/adminTypes'
 
-interface CreateUserModalProps {
-  onClose: () => void
-  onSuccess: () => void
-}
-
-const CreateUserModal = ({ onClose, onSuccess }: CreateUserModalProps) => {
+const CreateUserModal = ({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) => {
   const [loading, setLoading] = useState(false)
   const [newUser, setNewUser] = useState<NewUser>({
     email: '',
@@ -23,16 +18,40 @@ const CreateUserModal = ({ onClose, onSuccess }: CreateUserModalProps) => {
     e.preventDefault()
     setLoading(true)
     
+    // Debug logging - check what data we're about to send
+    console.log('=== DEBUG: Form submission ===')
+    console.log('newUser state:', newUser)
+    console.log('fullName value:', newUser.fullName)
+    console.log('fullName length:', newUser.fullName?.length)
+    console.log('fullName type:', typeof newUser.fullName)
+    console.log('===========================')
+    
     try {
+      const payload = {
+        email: newUser.email,
+        password: newUser.password,
+        fullName: newUser.fullName, // Make sure this is the correct field name
+        role: newUser.role,
+        createAccount: newUser.createAccount,
+        initialBalance: newUser.initialBalance
+      }
+
+      console.log('=== DEBUG: Payload being sent ===')
+      console.log('Payload:', JSON.stringify(payload, null, 2))
+      console.log('==============================')
+
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newUser),
+        body: JSON.stringify(payload),
       })
 
       const data = await response.json()
+      console.log('=== DEBUG: API Response ===')
+      console.log('Response:', data)
+      console.log('========================')
 
       if (data.success) {
         toast.success('User created successfully!')
@@ -42,10 +61,27 @@ const CreateUserModal = ({ onClose, onSuccess }: CreateUserModalProps) => {
         toast.error(data.error || 'Failed to create user')
       }
     } catch (error) {
+      console.error('=== DEBUG: Error ===')
+      console.error('Error:', error)
+      console.error('=================')
       toast.error('Failed to create user')
     } finally {
       setLoading(false)
     }
+  }
+
+  // Debug function to check form state
+  const handleInputChange = (field: keyof NewUser, value: string | number | boolean) => {
+    console.log(`=== DEBUG: Input change ===`)
+    console.log(`Field: ${field}`)
+    console.log(`New value: ${value}`)
+    console.log(`Value type: ${typeof value}`)
+    console.log(`========================`)
+    
+    setNewUser(prev => ({
+      ...prev,
+      [field]: value
+    }))
   }
 
   return (
@@ -69,6 +105,12 @@ const CreateUserModal = ({ onClose, onSuccess }: CreateUserModalProps) => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[calc(90vh-120px)] overflow-y-auto">
+          {/* Debug Info */}
+          {/* <div className="bg-gray-100 p-3 rounded-lg text-xs">
+            <strong>Debug Info:</strong>
+            <pre>{JSON.stringify(newUser, null, 2)}</pre>
+          </div> */}
+
           {/* Full Name */}
           <div className="space-y-2">
             <label className="flex items-center text-sm font-medium text-gray-700">
@@ -78,7 +120,7 @@ const CreateUserModal = ({ onClose, onSuccess }: CreateUserModalProps) => {
             <input
               type="text"
               value={newUser.fullName}
-              onChange={(e) => setNewUser({...newUser, fullName: e.target.value})}
+              onChange={(e) => handleInputChange('fullName', e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
               placeholder="e.g., John Doe"
               required
@@ -94,7 +136,7 @@ const CreateUserModal = ({ onClose, onSuccess }: CreateUserModalProps) => {
             <input
               type="email"
               value={newUser.email}
-              onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+              onChange={(e) => handleInputChange('email', e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
               placeholder="user@example.com"
               required
@@ -110,7 +152,7 @@ const CreateUserModal = ({ onClose, onSuccess }: CreateUserModalProps) => {
             <input
               type="password"
               value={newUser.password}
-              onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+              onChange={(e) => handleInputChange('password', e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
               placeholder="Enter secure password"
               required
@@ -127,7 +169,7 @@ const CreateUserModal = ({ onClose, onSuccess }: CreateUserModalProps) => {
             </label>
             <select
               value={newUser.role}
-              onChange={(e) => setNewUser({...newUser, role: e.target.value})}
+              onChange={(e) => handleInputChange('role', e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
             >
               <option value="user">User</option>
@@ -142,7 +184,7 @@ const CreateUserModal = ({ onClose, onSuccess }: CreateUserModalProps) => {
                 type="checkbox"
                 id="createAccount"
                 checked={newUser.createAccount}
-                onChange={(e) => setNewUser({...newUser, createAccount: e.target.checked})}
+                onChange={(e) => handleInputChange('createAccount', e.target.checked)}
                 className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
               />
               <label htmlFor="createAccount" className="ml-3 flex items-center text-sm font-medium text-gray-700">
@@ -164,7 +206,7 @@ const CreateUserModal = ({ onClose, onSuccess }: CreateUserModalProps) => {
                 <input
                   type="number"
                   value={newUser.initialBalance}
-                  onChange={(e) => setNewUser({...newUser, initialBalance: Number(e.target.value)})}
+                  onChange={(e) => handleInputChange('initialBalance', Number(e.target.value))}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
                   min="0"
                   step="0.01"

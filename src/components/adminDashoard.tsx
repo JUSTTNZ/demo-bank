@@ -33,10 +33,10 @@ export default function AdminDashboard() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       
-      // if (!user) {
-      //   router.push('/login')
-      //   return
-      // }
+      if (!user) {
+        router.push('/login')
+        return
+      }
 
       const { data: profile } = await supabase
         .from('profiles')
