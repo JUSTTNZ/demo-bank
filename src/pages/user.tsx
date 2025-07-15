@@ -1,5 +1,5 @@
 import Head from 'next/head'
-import UserDashboard from '@/components/users/userDashboard'
+import UserDashboard from '@/components/userDashboard'
 
 export default function AdminPage() {
   return (
