@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ExchangeRate } from '@/types/userTypes';
-import { mockUserApi } from '@/pages/api/users/userApi';
+import { userApi } from '@/pages/api/users/userApi';
 
 export const useExchangeRates = () => {
   const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([]);
@@ -11,7 +11,7 @@ export const useExchangeRates = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const rates = await mockUserApi.getExchangeRates();
+        const rates = await userApi.getExchangeRates();
         setExchangeRates(rates);
       } catch (err) {
         setError('Failed to load exchange rates');
