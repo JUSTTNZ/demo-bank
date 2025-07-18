@@ -27,8 +27,6 @@ interface Message {
   created_at: string
   profiles?: {
     id: string
-    first_name: string
-    last_name: string
     email: string
     full_name?: string
   }
@@ -36,8 +34,6 @@ interface Message {
 
 interface ChatUser {
   id: string
-  first_name: string
-  last_name: string
   email: string
   full_name?: string
 }
@@ -146,9 +142,14 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose }) => {
     }
   }
 
-  const getUserInitials = (firstName: string, lastName: string) => {
-    return `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase()
-  }
+  const getUserInitials = (fullName?: string | null) => {
+  if (!fullName) return 'U'
+  const parts = fullName.trim().split(' ')
+  return parts.length >= 2
+    ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    : parts[0][0].toUpperCase()
+}
+
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp)
@@ -264,7 +265,7 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose }) => {
               <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full flex items-center justify-center">
                 <span className="text-white font-medium text-sm">
                   {chatDetails.profiles ? 
-                    getUserInitials(chatDetails.profiles.first_name, chatDetails.profiles.last_name) : 
+                    getUserInitials(chatDetails.profiles.full_name) : 
                     'U'
                   }
                 </span>
@@ -273,7 +274,7 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose }) => {
               <div className="min-w-0">
                 <h1 className="text-lg font-semibold text-gray-900 truncate">
                   {chatDetails.profiles ? 
-                    `${chatDetails.profiles.first_name} ${chatDetails.profiles.last_name}` : 
+                    `${chatDetails.profiles.full_name}` : 
                     'Unknown User'
                   }
                 </h1>
@@ -353,7 +354,7 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose }) => {
                   <div className="mb-1">
                     <p className="text-sm font-medium">
                       {message.profiles ? 
-                        `${message.profiles.first_name} ${message.profiles.last_name}` : 
+                        `${message.profiles.full_name}` : 
                         'Unknown User'
                       }
                     </p>

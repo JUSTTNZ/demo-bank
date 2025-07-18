@@ -28,8 +28,6 @@ interface Chat {
   updated_at: string
   profiles?: {
     id: string
-    first_name: string
-    last_name: string
     email: string
     full_name?: string
   }
@@ -74,7 +72,7 @@ const ChatsManagement: React.FC<Props> = ({ onRefresh }) => {
 
   // Filter chats based on search and status
   const filteredChats = chats.filter(chat => {
-    const userName = chat.profiles ? `${chat.profiles.first_name} ${chat.profiles.last_name}` : ''
+    const userName = chat.profiles ? `${chat.profiles.full_name} ` : ''
     const userEmail = chat.profiles?.email || ''
     
     const matchesSearch = userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -114,9 +112,14 @@ const ChatsManagement: React.FC<Props> = ({ onRefresh }) => {
     }
   }
 
-  const getUserInitials = (firstName: string, lastName: string) => {
-    return `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase()
-  }
+  const getUserInitials = (fullName?: string | null) => {
+  if (!fullName) return 'U'
+  const parts = fullName.trim().split(' ')
+  return parts.length >= 2
+    ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    : parts[0][0].toUpperCase()
+}
+
 
   const handleChatAction = async (chatId: string, action: string) => {
     if (action === 'view') {
@@ -341,7 +344,7 @@ const ChatsManagement: React.FC<Props> = ({ onRefresh }) => {
                         <div className="flex-shrink-0 w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                           <span className="text-xs font-medium text-gray-600">
                             {chat.profiles ? 
-                              getUserInitials(chat.profiles.first_name, chat.profiles.last_name) : 
+                              getUserInitials(chat.profiles.full_name) : 
                               'U'
                             }
                           </span>
@@ -349,7 +352,7 @@ const ChatsManagement: React.FC<Props> = ({ onRefresh }) => {
                         <div className="ml-3 min-w-0">
                           <div className="text-sm font-medium text-gray-900 truncate">
                             {chat.profiles ? 
-                              `${chat.profiles.first_name} ${chat.profiles.last_name}` : 
+                              `${chat.profiles.full_name}` : 
                               'Unknown User'
                             }
                           </div>

@@ -1,63 +1,51 @@
-import { NextResponse } from 'next/server'
+// pages/api/admin/chats/[chatId]/messages.ts
+
+import type { NextApiRequest, NextApiResponse } from 'next'
 import { getChatMessages, createChatMessage } from '@/lib/admin'
 
-// GET messages
-export async function GET(
-  request: Request,
-  { params }: { params: { chatId: string } }
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
 ) {
-  try {
-    const { success, messages, error } = await getChatMessages(params.chatId)
-    
-    if (!success) {
-      return NextResponse.json({ error }, { status: 400 })
-    }
+  const {
+    query: { chatId },
+    method,
+    body,
+  } = req
 
-    return NextResponse.json({ 
-      success: true, 
-      messages 
-    })
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch messages' },
-      { status: 500 }
-    )
+  if (typeof chatId !== 'string') {
+    return res.status(400).json({ error: 'Invalid chatId' })
   }
-}
 
-// POST new message
-export async function POST(
-  request: Request,
-  { params }: { params: { chatId: string } }
-) {
   try {
-    const { content, message_type = 'text' } = await request.json()
-    
-    if (!content) {
-      return NextResponse.json(
-        { error: 'Message content is required' },
-        { status: 400 }
+    if (method === 'GET') {
+      const { success, messages, error } = await getChatMessages(chatId)
+      if (!success) return res.status(400).json({ error })
+      return res.status(200).json({ success: true, messages })
+    }
+
+    if (method === 'POST') {
+      const { content, message_type = 'text' } = body
+
+      if (!content) {
+        return res.status(400).json({ error: 'Message content is required' })
+      }
+
+      const { success, message, error } = await createChatMessage(
+        chatId,
+        content,
+        message_type
       )
+
+      if (!success) return res.status(400).json({ error })
+
+      return res.status(200).json({ success: true, message })
     }
 
-    const { success, message, error } = await createChatMessage(
-      params.chatId, 
-      content, 
-      message_type
-    )
-    
-    if (!success) {
-      return NextResponse.json({ error }, { status: 400 })
-    }
-
-    return NextResponse.json({ 
-      success: true, 
-      message 
-    })
+    return res.setHeader('Allow', ['GET', 'POST']).status(405).end(`Method ${method} Not Allowed`)
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to send message' },
-      { status: 500 }
-    )
+    return res.status(500).json({
+      error: error.message || 'Unexpected server error',
+    })
   }
 }

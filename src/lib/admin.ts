@@ -184,7 +184,7 @@ export async function getAllChats() {
     // Then get all profiles
     const { data: profiles, error: profilesError } = await supabaseAdmin
       .from('profiles')
-      .select('id, first_name, last_name, email')
+      .select('id, full_name, email')
 
     if (profilesError) {
       console.warn('Could not fetch profiles:', profilesError)
@@ -232,7 +232,7 @@ export async function getChatDetails(chatId: string) {
       .from('chats')
       .select(`
         *,
-        profiles:user_id (id, first_name, last_name, email)
+        profiles:user_id (id, full_name, email)
       `)
       .eq('id', chatId)
       .single()
@@ -283,7 +283,7 @@ export async function createChatMessage(
       })
       .select(`
         *,
-        profiles:sender_id (id, first_name, last_name, email)
+        profiles:sender_id (id, full_name, email)
       `)
       .single()
 
@@ -309,31 +309,31 @@ export async function createChatMessage(
 
 export async function getChatMessages(chatId: string) {
   try {
-    // First get all messages for the chat - use created_at instead of inserted_at
+    // 1. Get all messages in the chat
     const { data: messages, error: messagesError } = await supabaseAdmin
       .from('messages')
       .select('*')
       .eq('chat_id', chatId)
-      .order('created_at', { ascending: true }) // Changed from inserted_at to created_at
+      .order('created_at', { ascending: true })
 
     if (messagesError) {
       throw new Error(`Failed to fetch messages: ${messagesError.message}`)
     }
 
-    // Then get all profiles
+    // 2. Get all profiles (optional optimization: just get needed IDs)
     const { data: profiles, error: profilesError } = await supabaseAdmin
       .from('profiles')
-      .select('id, first_name, last_name, email, full_name')
+      .select('id, email, full_name')
 
     if (profilesError) {
       console.warn('Could not fetch profiles:', profilesError)
     }
 
-    // Manually join the data using sender_id
+    // 3. Attach sender's profile info to each message
     const messagesWithProfiles = messages?.map(message => ({
       ...message,
-      profiles: profiles?.find(profile => profile.id === message.sender_id) || null
-    })) || []
+      sender: profiles?.find(p => p.id === message.sender_id) || null
+    })) ?? []
 
     return {
       success: true,
@@ -347,7 +347,6 @@ export async function getChatMessages(chatId: string) {
     }
   }
 }
-
 export async function deleteChat(chatId: string) {
   try {
     // Delete chat (this will cascade to messages)
@@ -391,7 +390,7 @@ export async function updateChatStatus(
       .eq('id', chatId)
       .select(`
         *,
-        profiles:user_id (id, first_name, last_name, email)
+        profiles:user_id (id, full_name email)
       `)
       .single()
 

@@ -1,47 +1,33 @@
-import { NextResponse } from 'next/server'
+import type { NextApiRequest, NextApiResponse } from 'next'
 import { getChatDetails, deleteChat } from '@/lib/admin'
 
-// GET single chat
-export async function GET(
-  request: Request,
-  { params }: { params: { chatId: string } }
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
 ) {
+  const {
+    query: { chatId },
+    method,
+  } = req
+
   try {
-    const { success, chat, error } = await getChatDetails(params.chatId)
-    
-    if (!success) {
-      return NextResponse.json({ error }, { status: 400 })
+    if (method === 'GET') {
+      const { success, chat, error } = await getChatDetails(chatId as string)
+      if (!success) return res.status(400).json({ error })
+      return res.status(200).json({ success: true, chat })
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      chat 
+    if (method === 'DELETE') {
+      const { success, error } = await deleteChat(chatId as string)
+      if (!success) return res.status(400).json({ error })
+      return res.status(200).json({ success: true })
+    }
+
+    res.setHeader('Allow', ['GET', 'DELETE'])
+    return res.status(405).end(`Method ${method} Not Allowed`)
+  } catch (err: any) {
+    return res.status(500).json({
+      error: err.message || 'Internal server error',
     })
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch chat' },
-      { status: 500 }
-    )
-  }
-}
-
-// DELETE chat
-export async function DELETE(
-  request: Request,
-  { params }: { params: { chatId: string } }
-) {
-  try {
-    const { success, error } = await deleteChat(params.chatId)
-    
-    if (!success) {
-      return NextResponse.json({ error }, { status: 400 })
-    }
-
-    return NextResponse.json({ success: true })
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to delete chat' },
-      { status: 500 }
-    )
   }
 }
