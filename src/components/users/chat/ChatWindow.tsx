@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MessageItem } from './MessageItem';
-import { UseChatReturn } from '@/hooks/useChat';
+import { UseChatReturn } from '../../../hooks/useChat';
 
 interface ChatWindowProps {
   chatId: string;
