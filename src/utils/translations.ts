@@ -2,6 +2,7 @@ import { Translation } from '@/types/userTypes';
 
 export const translations: Record<string, Translation> = {
   en: {
+    
     goodMorning: 'Good morning',
     goodAfternoon: 'Good afternoon',
     goodEvening: 'Good evening',

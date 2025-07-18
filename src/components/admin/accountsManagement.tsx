@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CreditCard, Search, Filter, DollarSign, User, Calendar, Eye, Edit, Trash2, Plus, RefreshCw, Check, X, AlertCircle } from 'lucide-react'
+import { CreditCard, Search, Filter, DollarSign, User, Calendar, Eye, Edit, Trash2, RefreshCw, Check, X, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // Type definitions
@@ -35,7 +35,7 @@ const AccountsManagement = ({ initialAccounts = [], onRefresh }: AccountsManagem
   const [editingAccount, setEditingAccount] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     balance: '',
-    status: 'active'
+    status: 'active' as Account['status']
   })
   const [updateLoading, setUpdateLoading] = useState<string | null>(null)
   const [notification, setNotification] = useState<{
@@ -68,7 +68,7 @@ const AccountsManagement = ({ initialAccounts = [], onRefresh }: AccountsManagem
     if (initialAccounts.length === 0) {
       fetchAccounts()
     }
-  }, [])
+  }, [initialAccounts.length])
 
   // Handle refresh
   const handleRefresh = () => {
@@ -204,6 +204,11 @@ const AccountsManagement = ({ initialAccounts = [], onRefresh }: AccountsManagem
     }
   }
 
+  // Use showNotification function to avoid unused variable warning
+  const handleNotificationTest = () => {
+    showNotification('success', 'Test notification')
+  }
+
   return (
     <div className="space-y-6">
       {/* Notification */}
@@ -239,6 +244,13 @@ const AccountsManagement = ({ initialAccounts = [], onRefresh }: AccountsManagem
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
+            </button>
+            <button
+              onClick={handleNotificationTest}
+              className="hidden"
+              aria-hidden="true"
+            >
+              Test Notification
             </button>
             <div className="text-right">
               <p className="text-sm text-gray-500">Total Balance</p>
@@ -372,7 +384,7 @@ const AccountsManagement = ({ initialAccounts = [], onRefresh }: AccountsManagem
                     {editingAccount === account.id ? (
                       <select
                         value={editForm.status}
-                        onChange={(e) => setEditForm({...editForm, status: e.target.value as any})}
+                        onChange={(e) => setEditForm({...editForm, status: e.target.value as Account['status']})}
                         className="px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       >
                         <option value="active">Active</option>

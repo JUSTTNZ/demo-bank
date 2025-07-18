@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { 
   Menu, 
   X, 
-  Settings, 
+  Headphones, 
   LogOut 
 } from 'lucide-react';
 import { Language } from '@/types/userTypes';
@@ -86,10 +86,12 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             {/* Menu Items */}
-            <button className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
-              <Settings size={16} />
-              <span>{t.settings}</span>
-            </button>
+
+            <Link href={'/chatpage'} className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+                <Headphones size={16} />
+                <span>{t.support}</span>
+            </Link>
+        
             <button onClick={onSignOut} className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
               <LogOut size={16} />
               <span>{t.logout}</span>
@@ -147,10 +149,12 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
             
             {/* Menu items */}
-            <button className="flex items-center space-x-3 w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
-              <Settings size={20} />
-              <span>{t.settings}</span>
-            </button>
+            <Link href={"/chatpage"} className="flex items-center space-x-3 w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+                <button className="flex items-center space-x-3 w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+                  <Headphones size={20} />
+                  <span>{t.support}</span>
+              </button>
+            </Link>
             <button onClick={onSignOut} className="flex items-center space-x-3 w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
               <LogOut size={20} />
               <span>{t.logout}</span>

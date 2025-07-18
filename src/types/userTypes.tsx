@@ -159,3 +159,23 @@ export interface Translation {
   biometricLogin: string;
   biometricLoginAnswer: string;
 }
+
+export type Profile = {
+  id: string;
+  full_name: string;
+  avatar_url: string | null;
+  role: string;
+};
+
+export type Message = {
+  id: string;
+  chat_id: string;
+  sender_id: string;
+  user_id: string;
+  text: string;
+  sent_at: string;
+  seen_at: string | null;
+  seen_by: string | null;
+  created_at: string;
+  profiles?: Profile;
+};
