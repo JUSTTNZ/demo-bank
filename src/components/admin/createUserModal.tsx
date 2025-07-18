@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import supabase from '@/utils/supabaseClient'
 import { X, User, Mail, Lock, Shield, CreditCard, DollarSign } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { NewUser } from '@/types/adminTypes'
 
 const CreateUserModal = ({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) => {
   const [loading, setLoading] = useState(false)
+  const [currentUser, setCurrentUser] = useState<any>(null)
   const [newUser, setNewUser] = useState<NewUser>({
     email: '',
     password: '',
@@ -13,6 +15,24 @@ const CreateUserModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
     createAccount: true,
     initialBalance: 1000
   })
+
+  useEffect(() => {
+  const getUser = async () => {
+    const {
+      data: { user },
+      error
+    } = await supabase.auth.getUser()
+
+    if (user) {
+      setCurrentUser(user) // store in state
+    } else {
+      console.error('No user found:', error)
+    }
+  }
+
+  getUser()
+}, [])
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,7 +53,8 @@ const CreateUserModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
         fullName: newUser.fullName, // Make sure this is the correct field name
         role: newUser.role,
         createAccount: newUser.createAccount,
-        initialBalance: newUser.initialBalance
+        initialBalance: newUser.initialBalance,
+        adminId: currentUser?.id
       }
 
       console.log('=== DEBUG: Payload being sent ===')

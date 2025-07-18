@@ -3,6 +3,7 @@ import '@/styles/globals.css'
 import { Toaster } from 'react-hot-toast'
 // 👇 Import font
 import { Inter } from 'next/font/google'
+import { AuthProvider } from '../../contexts/auth'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -25,7 +26,9 @@ export default function MyApp({ Component, pageProps }: AppProps) {
           },
         }}
       />
-      <Component {...pageProps} />
+      <AuthProvider>
+        <Component {...pageProps} />
+      </AuthProvider>
     </main>
   )
 }

@@ -149,7 +149,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               id: user.user.id,
               full_name: fullName,
               email: email,
-              role: role || 'user'
+              role: role || 'user',
+              created_by_admin_id: req.body.adminId
             }])
             .select()
 
