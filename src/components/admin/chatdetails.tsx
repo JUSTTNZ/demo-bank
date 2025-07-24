@@ -17,7 +17,7 @@ import {
   X,
   AlertCircle
 } from 'lucide-react'
-
+import toast from 'react-hot-toast'
 interface Message {
   id: string
   chat_id: string
@@ -133,7 +133,7 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose }) => {
         // Refresh messages
         fetchChatData()
       } else {
-        alert('Failed to send message')
+        toast.error('Failed to send message')
       }
     } catch (err) {
       alert('Error sending message')

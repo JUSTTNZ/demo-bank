@@ -1,3 +1,4 @@
+// pages/api/admin/chats/[chatId].ts
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { getChatDetails, deleteChat } from '@/lib/admin'
 

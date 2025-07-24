@@ -171,29 +171,29 @@ export async function getAllAccounts() {
 
 export async function getAllChats() {
   try {
-    // First get all chats
-    const { data: chats, error: chatsError } = await supabaseAdmin
+    // Get all chats with message counts
+    const { data: chatsWithCounts, error: chatsError } = await supabaseAdmin
       .from('chats')
-      .select('*')
+      .select(`
+        *,
+        profiles!chats_user_id_fkey (
+          id,
+          full_name,
+          email
+        )
+      `)
       .order('updated_at', { ascending: false })
 
     if (chatsError) {
       throw new Error(`Failed to fetch chats: ${chatsError.message}`)
     }
 
-    // Then get all profiles
-    const { data: profiles, error: profilesError } = await supabaseAdmin
-      .from('profiles')
-      .select('id, full_name, email')
-
-    if (profilesError) {
-      console.warn('Could not fetch profiles:', profilesError)
-    }
-
     // Get message counts for each chat
+    const chatIds = chatsWithCounts?.map(chat => chat.id) || []
     const { data: messageCounts, error: messageError } = await supabaseAdmin
       .from('messages')
       .select('chat_id')
+      .in('chat_id', chatIds)
 
     if (messageError) {
       console.warn('Could not fetch message counts:', messageError)
@@ -205,16 +205,41 @@ export async function getAllChats() {
       return acc
     }, {} as Record<string, number>) || {}
 
-    // Manually join the data
-    const chatsWithProfiles = chats?.map(chat => ({
+    // Add message counts to chats
+    const chatsWithMessageCounts = chatsWithCounts?.map(chat => ({
       ...chat,
-      profiles: profiles?.find(profile => profile.id === chat.user_id) || null,
-      messages: [{ count: messageCountMap[chat.id] || 0 }]
+      messageCount: messageCountMap[chat.id] || 0
     })) || []
+
+    // Group by user_id and select the chat with the most messages per user
+    const uniqueChatsMap = new Map()
+    
+    chatsWithMessageCounts.forEach(chat => {
+      const existing = uniqueChatsMap.get(chat.user_id)
+      if (!existing || chat.messageCount > existing.messageCount || 
+          (chat.messageCount === existing.messageCount && new Date(chat.updated_at) > new Date(existing.updated_at))) {
+        uniqueChatsMap.set(chat.user_id, chat)
+      }
+    })
+
+    const uniqueChats = Array.from(uniqueChatsMap.values())
+
+    // Format for frontend
+    const formattedChats = uniqueChats.map(chat => ({
+      id: chat.id,
+      user_id: chat.user_id,
+      admin_id: chat.admin_id,
+      title: chat.title,
+      status: chat.status,
+      created_at: chat.created_at,
+      updated_at: chat.updated_at,
+      profiles: chat.profiles,
+      messages: [{ count: chat.messageCount }]
+    }))
 
     return {
       success: true,
-      chats: chatsWithProfiles
+      chats: formattedChats
     }
   } catch (error: any) {
     console.error('Get chats error:', error)
@@ -224,7 +249,6 @@ export async function getAllChats() {
     }
   }
 }
-
 export async function getChatDetails(chatId: string) {
   try {
     // Get chat details
@@ -264,8 +288,8 @@ export async function getChatDetails(chatId: string) {
 
 export async function createChatMessage(
   chatId: string,
-  content: string,
-  message_type: 'text' | 'file' | 'image' = 'text'
+  message: string,
+  message_type: 'text' | 'file' | 'image' = 'text' // Keep parameter for future use
 ) {
   try {
     // Get current admin user
@@ -273,13 +297,14 @@ export async function createChatMessage(
     if (authError || !user) throw new Error('Not authenticated')
 
     // Create message
-    const { data: message, error } = await supabaseAdmin
+    const { data: messageData, error } = await supabaseAdmin
       .from('messages')
       .insert({
         chat_id: chatId,
-        content,
-        message_type,
-        sender_id: user.id
+        message,
+        sender_id: user.id,
+        user_id: user.id // Add this since it's in your schema
+        // Remove message_type since it's not in your schema
       })
       .select(`
         *,
@@ -297,7 +322,7 @@ export async function createChatMessage(
 
     return {
       success: true,
-      message
+      message: messageData
     }
   } catch (error: any) {
     return {
@@ -309,7 +334,70 @@ export async function createChatMessage(
 
 export async function getChatMessages(chatId: string) {
   try {
-    // 1. Get all messages in the chat
+    console.log('Fetching messages for chat:', chatId) // Debug log
+
+    // First, let's check if there are any messages at all for this chat
+    const { count: totalMessages, error: countError } = await supabaseAdmin
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('chat_id', chatId)
+
+    console.log('Total messages found:', totalMessages) // Debug log
+
+    if (countError) {
+      console.error('Count error:', countError)
+    }
+
+    // Get messages with sender profiles
+    const { data: messages, error: messagesError } = await supabaseAdmin
+      .from('messages')
+      .select(`
+        *,
+        profiles!messages_sender_id_fkey (
+          id,
+          email,
+          full_name
+        )
+      `)
+      .eq('chat_id', chatId)
+      .order('created_at', { ascending: true })
+
+    console.log('Messages query result:', { messages, error: messagesError }) // Debug log
+
+    if (messagesError) {
+      console.error('Messages fetch error:', messagesError)
+      throw new Error(`Failed to fetch messages: ${messagesError.message}`)
+    }
+
+    // Transform the data to match your expected format
+    const transformedMessages = messages?.map(message => ({
+      ...message,
+      content: message.message, // Map 'message' field to 'content' for frontend compatibility
+      sender: message.profiles,
+      profiles: message.profiles // Keep both for compatibility
+    })) || []
+
+    console.log('Transformed messages:', transformedMessages) // Debug log
+
+    return {
+      success: true,
+      messages: transformedMessages
+    }
+  } catch (error: any) {
+    console.error('Get messages error:', error)
+    return {
+      success: false,
+      error: error.message
+    }
+  }
+}
+
+// Alternative version that doesn't rely on foreign key relationships
+export async function getChatMessagesAlternative(chatId: string) {
+  try {
+    console.log('Fetching messages for chat (alternative):', chatId)
+
+    // Get all messages for this chat
     const { data: messages, error: messagesError } = await supabaseAdmin
       .from('messages')
       .select('*')
@@ -320,27 +408,44 @@ export async function getChatMessages(chatId: string) {
       throw new Error(`Failed to fetch messages: ${messagesError.message}`)
     }
 
-    // 2. Get all profiles (optional optimization: just get needed IDs)
+    console.log('Raw messages:', messages)
+
+    if (!messages || messages.length === 0) {
+      return {
+        success: true,
+        messages: []
+      }
+    }
+
+    // Get unique sender IDs
+    const senderIds = [...new Set(messages.map(m => m.sender_id))]
+    
+    // Get profiles for all senders
     const { data: profiles, error: profilesError } = await supabaseAdmin
       .from('profiles')
       .select('id, email, full_name')
+      .in('id', senderIds)
 
     if (profilesError) {
       console.warn('Could not fetch profiles:', profilesError)
     }
 
-    // 3. Attach sender's profile info to each message
-    const messagesWithProfiles = messages?.map(message => ({
+    // Manually join messages with profiles
+    const messagesWithProfiles = messages.map(message => ({
       ...message,
-      sender: profiles?.find(p => p.id === message.sender_id) || null
-    })) ?? []
+      content: message.message, // Map database 'message' field to frontend 'content'
+      sender: profiles?.find(p => p.id === message.sender_id) || null,
+      profiles: profiles?.find(p => p.id === message.sender_id) || null
+    }))
+
+    console.log('Messages with profiles:', messagesWithProfiles)
 
     return {
       success: true,
       messages: messagesWithProfiles
     }
   } catch (error: any) {
-    console.error('Get messages error:', error)
+    console.error('Get messages alternative error:', error)
     return {
       success: false,
       error: error.message
