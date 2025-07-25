@@ -352,12 +352,6 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose }) => {
                   }`}
                 >
                   <div className="mb-1">
-                    <p className="text-sm font-medium">
-                      {message.profiles ? 
-                        `${message.profiles.full_name}` : 
-                        'Unknown User'
-                      }
-                    </p>
                   </div>
                   <p className="text-sm">{message.content}</p>
                   <p className={`text-xs mt-1 ${

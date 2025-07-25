@@ -6,6 +6,7 @@ import {
   sendMessageToAdmin,
   fetchMessages,
   subscribeToMessages,
+  getOrCreateChat
 } from "@/services/chatService";
 import {
   MessageCircle,
@@ -37,20 +38,33 @@ const ChatBox = () => {
 
   // Format time without seconds
   const formatTime = (date: string | Date) => {
-    const d = new Date(date);
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
+  const d = new Date(date);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+};
 
-  // Format date if not today
-  const formatDate = (date: string | Date) => {
-    const d = new Date(date);
-    const today = new Date();
-    
-    if (d.toDateString() === today.toDateString()) {
-      return formatTime(d);
-    }
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + formatTime(d);
-  };
+const formatDate = (date: string | Date) => {
+  const d = new Date(date);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const messageDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  
+  const diffTime = today.getTime() - messageDate.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) {
+    // Today - just show time
+    return formatTime(d);
+  } else if (diffDays === 1) {
+    // Yesterday
+    return `Yesterday ${formatTime(d)}`;
+  } else if (diffDays < 7) {
+    // This week - show day name
+    return `${d.toLocaleDateString([], { weekday: 'short' })} ${formatTime(d)}`;
+  } else {
+    // Older - show date
+    return `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${formatTime(d)}`;
+  }
+};
 
   const getInitials = (name: string) => {
     return name
@@ -66,53 +80,88 @@ const ChatBox = () => {
   };
 
   useEffect(() => {
-    if (!user?.id) return;
+  if (!user?.id) return;
 
-    const loadMessages = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const id = await sendMessageToAdmin(user.id, "");
-        chatIdRef.current = id;
-        const msgs = await fetchMessages(id);
-        setMessages(msgs.filter((msg: any) => msg.message.trim() !== ""));
+  const loadMessages = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      console.log('🔍 Debug: Initializing chat for user:', user.id);
+      
+      // Use getOrCreateChat instead of sendMessageToAdmin with empty string
+      const chatId = await getOrCreateChat(user.id);
+      
+      console.log('🔍 Debug: Chat ID obtained:', chatId);
+      
+      chatIdRef.current = chatId;
+      const msgs = await fetchMessages(chatId);
+      
+      console.log('🔍 Debug: Fetched messages:', msgs);
+      
+      // Filter out empty messages
+      const validMessages = msgs.filter((msg: any) => msg.message && msg.message.trim() !== "");
+      setMessages(validMessages);
+      
+      console.log('🔍 Debug: Valid messages after filtering:', validMessages);
+      
+      // Subscribe to new messages
+      const subscription = subscribeToMessages(chatId, (payload) => {
+        console.log('🔍 Debug: New message received:', payload.new);
         
-        // Subscribe to new messages
-        subscribeToMessages(id, (payload) => {
-          if (payload.new.message.trim() !== "") {
-            setMessages((prev) => [...prev, payload.new]);
-          }
-        });
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load messages. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+        if (payload.new.message && payload.new.message.trim() !== "") {
+          setMessages((prev) => [...prev, payload.new]);
+        }
+      });
 
-    loadMessages();
-  }, [user]);
+      // Cleanup subscription on unmount
+      return () => {
+        subscription.unsubscribe();
+      };
+      
+    } catch (err) {
+      console.error('❌ Debug: Failed to load messages:', err);
+      setError("Failed to load messages. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  loadMessages();
+}, [user]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages, view]);
 
   const sendMessage = async () => {
-    const trimmedInput = input.trim();
-    if (!trimmedInput || !chatIdRef.current) return;
+  const trimmedInput = input.trim();
+  if (!trimmedInput || !chatIdRef.current) {
+    console.log('🔍 Debug: Cannot send message - empty input or no chat ID');
+    return;
+  }
+  
+  console.log('🔍 Debug: Sending message:', {
+    userId: user.id,
+    chatId: chatIdRef.current,
+    message: trimmedInput,
+    messageLength: trimmedInput.length
+  });
+  
+  setIsLoading(true);
+  try {
+    const result = await sendMessageToAdmin(user.id, trimmedInput);
     
-    setIsLoading(true);
-    try {
-      await sendMessageToAdmin(user.id, trimmedInput);
-      setInput("");
-    } catch (err) {
-      console.error(err);
-      setError("Failed to send message. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    console.log('✅ Debug: Message sent successfully, chat ID:', result);
+    
+    // Only clear input after successful send
+    setInput("");
+  } catch (err) {
+    console.error('❌ Debug: Failed to send message:', err);
+    setError("Failed to send message. Please try again.");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -217,31 +266,31 @@ const ChatBox = () => {
       ) : (
         <>
           <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.sender_id === user.id ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[80%] px-3 py-2 rounded-lg shadow text-sm whitespace-pre-line ${
-                    msg.sender_id === user.id
-                      ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white"
-                      : "bg-gray-200 text-gray-800"
-                  }`}
-                >
-                  {msg.message}
-                  <div className={`flex items-center justify-end space-x-1 mt-1 ${
-                    msg.sender_id === user.id ? "text-emerald-100" : "text-gray-500"
-                  }`}>
-                    <span className="text-[10px] md:text-xs">{formatDate(msg.created_at)}</span>
-                    {msg.sender_id === user.id && <CheckCheck className="w-3 h-3" />}
-                  </div>
-                </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-
+  {messages.map((msg) => (
+    <div
+      key={msg.id}
+      className={`flex ${msg.sender_id === user.id ? "justify-end" : "justify-start"}`}
+    >
+      <div
+        className={`max-w-[80%] px-3 py-2 rounded-lg shadow text-sm whitespace-pre-line ${
+          msg.sender_id === user.id
+            ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white"
+            : "bg-gray-200 text-gray-800"
+        }`}
+      >
+        {/* Just show the message content - no name */}
+        {msg.message}
+        <div className={`flex items-center justify-end space-x-1 mt-1 text-xs ${
+          msg.sender_id === user.id ? "text-emerald-100" : "text-gray-500"
+        }`}>
+          <span>{formatDate(msg.created_at)}</span>
+          {msg.sender_id === user.id && <CheckCheck className="w-3 h-3" />}
+        </div>
+      </div>
+    </div>
+  ))}
+  <div ref={messagesEndRef} />
+</div>
           <div className="p-3 md:p-4 border-t bg-gray-50">
             <div className="flex space-x-2">
               <textarea

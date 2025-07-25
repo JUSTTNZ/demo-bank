@@ -1,5 +1,4 @@
 // pages/api/admin/chats/chats.ts
-
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { getChatMessages, createChatMessage } from '@/lib/admin'
 
