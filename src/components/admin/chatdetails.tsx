@@ -1,5 +1,5 @@
 'use client'
-import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react'
+import supabase  from '@/utils/supabaseClient'
 import React, { useState, useEffect, useRef } from 'react'
 import { 
   ArrowLeft, 
@@ -11,7 +11,8 @@ import {
   Archive,
   UserCheck,
   Clock,
-  CheckCircle2,
+  Check,
+  CheckCheck,
   User,
   MessageCircle,
   X,
@@ -27,6 +28,9 @@ interface Message {
   content: string
   message_type: 'text' | 'file' | 'image'
   created_at: string
+  sent_at?: string
+  seen_at?: string | null
+  seen_by?: string | null
   profiles?: {
     id: string
     email: string
@@ -61,9 +65,9 @@ interface Props {
 }
 
 const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone }) => {
-  const supabase = useSupabaseClient()
-  const user = useUser()
   const [chatDetails, setChatDetails] = useState<ChatDetails | null>(null)
+  const [userLoading, setUserLoading] = useState(true)
+  const [currentUser, setCurrentUser] = useState<any>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -71,6 +75,7 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone })
   const [sending, setSending] = useState(false)
   const [showOptions, setShowOptions] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const subscriptionRef = useRef<any>(null)
 
   // Get admin's timezone (from props, context, or browser)
   const currentAdminTimezone = adminTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -81,8 +86,114 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone })
   }
 
   useEffect(() => {
+    const getCurrentUser = async () => {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser()
+        console.log('Current user from supabase:', user, 'Error:', error)
+        
+        if (user) {
+          setCurrentUser(user)
+        } else {
+          console.log('No user found')
+        }
+      } catch (err) {
+        console.error('Error getting user:', err)
+      } finally {
+        setUserLoading(false)
+      }
+    }
+    
+    getCurrentUser()
+  }, [])
+
+  useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Mark messages as seen
+  const markMessagesAsSeen = async () => {
+    if (!currentUser || !chatDetails) return;
+
+    try {
+      const unseenMessages = messages.filter(msg => 
+        msg.sender_id !== currentUser.id && !msg.seen_at
+      );
+
+      if (unseenMessages.length === 0) return;
+
+      const messageIds = unseenMessages.map(msg => msg.id);
+      
+      const response = await fetch('/api/admin/chats/mark-seen', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messageIds,
+          seenBy: currentUser.id
+        })
+      });
+
+      if (response.ok) {
+        // Update local messages
+        setMessages(prev => prev.map(msg => {
+          if (messageIds.includes(msg.id)) {
+            return {
+              ...msg,
+              seen_at: new Date().toISOString(),
+              seen_by: currentUser.id
+            };
+          }
+          return msg;
+        }));
+      }
+    } catch (error) {
+      console.error('Error marking messages as seen:', error);
+    }
+  };
+
+  // Setup real-time subscription
+  const setupRealtimeSubscription = () => {
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe();
+    }
+
+    subscriptionRef.current = supabase
+      .channel(`chat_messages_${chatId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `chat_id=eq.${chatId}`
+        },
+        (payload) => {
+          console.log('Real-time message update:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newMessage = payload.new as Message;
+            
+            // Add the new message if it's not already in the list
+            setMessages(prev => {
+              const exists = prev.some(msg => msg.id === newMessage.id);
+              if (!exists) {
+                return [...prev, newMessage];
+              }
+              return prev;
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedMessage = payload.new as Message;
+            
+            // Update existing message (for read receipts)
+            setMessages(prev => prev.map(msg => 
+              msg.id === updatedMessage.id ? updatedMessage : msg
+            ));
+          }
+        }
+      )
+      .subscribe();
+  };
 
   // Fetch chat details and messages
 const fetchChatData = async () => {
@@ -123,11 +234,17 @@ const fetchChatData = async () => {
         content: msg.content || msg.message, // Map message field to content if needed
         message_type: msg.message_type || 'text',
         created_at: msg.created_at,
+        sent_at: msg.sent_at,
+        seen_at: msg.seen_at,
+        seen_by: msg.seen_by,
         profiles: msg.profiles
       }));
     
     console.log('Transformed messages:', transformedMessages);
     setMessages(transformedMessages)
+    
+    // Setup real-time subscription after initial load
+    setupRealtimeSubscription();
     
   } catch (err) {
     setError(err instanceof Error ? err.message : 'Unknown error occurred')
@@ -138,60 +255,150 @@ const fetchChatData = async () => {
 
   useEffect(() => {
     fetchChatData()
+    
+    // Cleanup subscription on unmount
+    return () => {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+      }
+    };
   }, [chatId])
 
- // Update the handleSendMessage function in your ChatDetail component
-
-// Update your handleSendMessage function to immediately show the message
-
-// Update your handleSendMessage function in ChatDetail component
-
-const handleSendMessage = async (e: React.FormEvent) => {
-  e.preventDefault()
-  if (!newMessage.trim() || sending) return
-
-  console.log('Sending message:', { chatId, newMessage })
-
-  const messageContent = newMessage;
-  setNewMessage('') // Clear input immediately
-  setSending(true)
-
-  try {
-    const response = await fetch('/api/admin/chats', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include', // This ensures cookies are sent for authentication
-      body: JSON.stringify({
-        chatId: chatId,
-        content: messageContent,
-        message_type: 'text'
-      })
-    })
-
-    console.log('Response status:', response.status)
-    const data = await response.json()
-    console.log('Response data:', data)
-    
-    if (data.success) {
-      // Refresh messages to get the updated list
-      await fetchChatData()
-      toast.success('Message sent successfully')
-    } else {
-      console.error('API Error:', data.error)
-      toast.error(data.error || 'Failed to send message')
-      setNewMessage(messageContent) // Restore message content on error
+  // Mark messages as seen when component mounts or messages change
+  useEffect(() => {
+    if (messages.length > 0 && currentUser) {
+      markMessagesAsSeen();
     }
-  } catch (err) {
-    console.error('Error sending message:', err)
-    toast.error('Error sending message')
-    setNewMessage(messageContent) // Restore message content on error
-  } finally {
-    setSending(false)
-  }
-}
+  }, [messages, currentUser]);
 
+ // Update the handleSendMessage function for faster sending with optimistic updates
+const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newMessage.trim() || sending) return
+
+    // Check if user is available
+    if (!currentUser) {
+      toast.error('Please log in to send messages')
+      return
+    }
+
+    console.log('Sending message:', { chatId, newMessage, userId: currentUser.id })
+
+    const messageContent = newMessage;
+    const tempId = `temp_${Date.now()}`;
+    
+    // Optimistic update - add message immediately to UI
+    const optimisticMessage: Message = {
+      id: tempId,
+      chat_id: chatId,
+      sender_id: currentUser.id,
+      content: messageContent,
+      message_type: 'text',
+      created_at: new Date().toISOString(),
+      sent_at: new Date().toISOString(),
+      seen_at: null,
+      seen_by: null,
+      profiles: {
+        id: currentUser.id,
+        email: currentUser.email,
+        full_name: currentUser.user_metadata?.full_name || currentUser.email
+      }
+    };
+
+    setMessages(prev => [...prev, optimisticMessage]);
+    setNewMessage('')
+    setSending(true)
+
+    try {
+      const response = await fetch('/api/admin/chats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          chatId: chatId,
+          content: messageContent,
+          message_type: 'text',
+          userId: currentUser.id
+        })
+      })
+
+      console.log('Response status:', response.status)
+      const data = await response.json()
+      console.log('Response data:', data)
+      
+      if (data.success) {
+        // Replace optimistic message with real message
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempId ? { ...data.message, profiles: optimisticMessage.profiles } : msg
+        ));
+        toast.success('Message sent successfully')
+      } else {
+        // Remove optimistic message on error
+        setMessages(prev => prev.filter(msg => msg.id !== tempId));
+        console.error('API Error:', data.error)
+        toast.error(data.error || 'Failed to send message')
+        setNewMessage(messageContent)
+      }
+    } catch (err) {
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.id !== tempId));
+      console.error('Error sending message:', err)
+      toast.error('Error sending message')
+      setNewMessage(messageContent)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  // Get read receipt icon
+  const getReadReceiptIcon = (message: Message) => {
+    const isOwnMessage = message.sender_id === currentUser?.id;
+    
+    if (!isOwnMessage) return null;
+
+    if (message.seen_at && message.seen_by) {
+      // Double tick - blue (read)
+      return <CheckCheck className="w-3 h-3 text-blue-500" />;
+    } else if (message.sent_at) {
+      // Double tick - gray (delivered but not read)
+      return <CheckCheck className="w-3 h-3 text-gray-400" />;
+    } else {
+      // Single tick - gray (sent)
+      return <Check className="w-3 h-3 text-gray-400" />;
+    }
+  };
+
+  // Show loading while checking user
+  if (userLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error if no user
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">Please log in to view this chat</p>
+          <button
+            onClick={onBack}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    )
+  }
+  
 const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'text-green-600'
@@ -435,7 +642,7 @@ const getStatusColor = (status: string) => {
                           isAdmin ? 'text-emerald-100' : 'text-gray-500'
                         }`}>
                           <span>{formatMessageTime(message.created_at, messageTimezone)}</span>
-                          {isAdmin && <CheckCircle2 className="w-3 h-3" />}
+                          {getReadReceiptIcon(message)}
                         </div>
                       </div>
                       {isAdmin && (

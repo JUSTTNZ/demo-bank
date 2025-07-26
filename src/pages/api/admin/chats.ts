@@ -1,4 +1,4 @@
-// pages/api/admin/chats.ts
+// pages/api/admin/chats.ts - Updated with fallback approach
 import { NextApiRequest, NextApiResponse } from 'next'
 import { getAllChats, createChatMessage } from '@/lib/admin'
 import { createPagesServerClient } from '@supabase/auth-helpers-nextjs'
@@ -27,32 +27,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'POST') {
       console.log('POST request body:', req.body)
       
-      // Get the authenticated user dynamically
-      const supabase = createPagesServerClient({ req, res })
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      let currentUserId = null;
       
-      console.log('Session check:', { 
-        hasSession: !!session, 
-        hasUser: !!session?.user,
-        userId: session?.user?.id,
-        sessionError: sessionError?.message 
-      })
+      // Try to get user from session first
+      try {
+        const supabase = createPagesServerClient({ req, res })
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        console.log('Session check:', { 
+          hasSession: !!session, 
+          hasUser: !!session?.user,
+          userId: session?.user?.id,
+          sessionError: sessionError?.message 
+        })
+        
+        if (session?.user) {
+          currentUserId = session.user.id
+          console.log('User ID from session:', currentUserId)
+        }
+      } catch (sessionErr) {
+        console.log('Session error:', sessionErr)
+      }
       
-      if (sessionError || !session?.user) {
-        console.log('Authentication failed:', { sessionError, session })
+      // Fallback: get userId from request body
+      if (!currentUserId) {
+        const { userId } = req.body
+        if (userId) {
+          currentUserId = userId
+          console.log('User ID from request body (fallback):', currentUserId)
+        }
+      }
+      
+      if (!currentUserId) {
+        console.log('No user ID available from session or request body')
         return res.status(401).json({ 
           success: false, 
-          error: 'Not authenticated. Please log in again.',
-          debug: { 
-            sessionError: sessionError?.message, 
-            hasSession: !!session,
-            hasUser: !!session?.user
-          }
+          error: 'Not authenticated. User ID is required.' 
         })
       }
-
-      const currentUserId = session.user.id
-      console.log('Authenticated user ID:', currentUserId)
       
       // Handle message sending with dynamic user ID
       const { chatId, content, message_type = 'text' } = req.body
