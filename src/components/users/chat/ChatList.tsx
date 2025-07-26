@@ -17,6 +17,7 @@ import {
   CheckCheck,
   Loader2,
 } from "lucide-react";
+import { useTimestampFormatter, getUserInitials } from "@/utils/timeStamp";
 
 const ChatBox = () => {
   const { user } = useAuth();
@@ -27,6 +28,10 @@ const ChatBox = () => {
   const chatIdRef = useRef<string | null>(null);
   const [view, setView] = useState("admin-profile");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Get user's timezone from profile or browser
+  const userTimezone = user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const { formatMessageTime, formatDetailedTime } = useTimestampFormatter(userTimezone);
 
   const adminProfile = {
     id: "admin-id",
@@ -36,132 +41,95 @@ const ChatBox = () => {
     avatar_url: null,
   };
 
-  // Format time without seconds
-  const formatTime = (date: string | Date) => {
-  const d = new Date(date);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-};
-
-const formatDate = (date: string | Date) => {
-  const d = new Date(date);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const messageDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  
-  const diffTime = today.getTime() - messageDate.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  if (diffDays === 0) {
-    // Today - just show time
-    return formatTime(d);
-  } else if (diffDays === 1) {
-    // Yesterday
-    return `Yesterday ${formatTime(d)}`;
-  } else if (diffDays < 7) {
-    // This week - show day name
-    return `${d.toLocaleDateString([], { weekday: 'short' })} ${formatTime(d)}`;
-  } else {
-    // Older - show date
-    return `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${formatTime(d)}`;
-  }
-};
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
-  };
-
   // Scroll to bottom of messages
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
-  if (!user?.id) return;
+    if (!user?.id) return;
 
-  const loadMessages = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      console.log('🔍 Debug: Initializing chat for user:', user.id);
-      
-      // Use getOrCreateChat instead of sendMessageToAdmin with empty string
-      const chatId = await getOrCreateChat(user.id);
-      
-      console.log('🔍 Debug: Chat ID obtained:', chatId);
-      
-      chatIdRef.current = chatId;
-      const msgs = await fetchMessages(chatId);
-      
-      console.log('🔍 Debug: Fetched messages:', msgs);
-      
-      // Filter out empty messages
-      const validMessages = msgs.filter((msg: any) => msg.message && msg.message.trim() !== "");
-      setMessages(validMessages);
-      
-      console.log('🔍 Debug: Valid messages after filtering:', validMessages);
-      
-      // Subscribe to new messages
-      const subscription = subscribeToMessages(chatId, (payload) => {
-        console.log('🔍 Debug: New message received:', payload.new);
+    const loadMessages = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        console.log('🔍 Debug: Initializing chat for user:', user.id);
         
-        if (payload.new.message && payload.new.message.trim() !== "") {
-          setMessages((prev) => [...prev, payload.new]);
-        }
-      });
+        const chatId = await getOrCreateChat(user.id);
+        console.log('🔍 Debug: Chat ID obtained:', chatId);
+        
+        chatIdRef.current = chatId;
+        const msgs = await fetchMessages(chatId);
+        console.log('🔍 Debug: Fetched messages:', msgs);
+        
+        // Filter out empty messages and ensure timestamps are valid
+        const validMessages = msgs.filter((msg: any) => {
+          return msg.message && 
+                 msg.message.trim() !== "" && 
+                 msg.created_at &&
+                 !isNaN(new Date(msg.created_at).getTime());
+        });
+        
+        setMessages(validMessages);
+        console.log('🔍 Debug: Valid messages after filtering:', validMessages);
+        
+        // Subscribe to new messages
+        const subscription = subscribeToMessages(chatId, (payload) => {
+          console.log('🔍 Debug: New message received:', payload.new);
+          
+          if (payload.new.message && 
+              payload.new.message.trim() !== "" && 
+              payload.new.created_at &&
+              !isNaN(new Date(payload.new.created_at).getTime())) {
+            setMessages((prev) => [...prev, payload.new]);
+          }
+        });
 
-      // Cleanup subscription on unmount
-      return () => {
-        subscription.unsubscribe();
-      };
-      
-    } catch (err) {
-      console.error('❌ Debug: Failed to load messages:', err);
-      setError("Failed to load messages. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        return () => {
+          subscription.unsubscribe();
+        };
+        
+      } catch (err) {
+        console.error('❌ Debug: Failed to load messages:', err);
+        setError("Failed to load messages. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  loadMessages();
-}, [user]);
+    loadMessages();
+  }, [user]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages, view]);
 
   const sendMessage = async () => {
-  const trimmedInput = input.trim();
-  if (!trimmedInput || !chatIdRef.current) {
-    console.log('🔍 Debug: Cannot send message - empty input or no chat ID');
-    return;
-  }
-  
-  console.log('🔍 Debug: Sending message:', {
-    userId: user.id,
-    chatId: chatIdRef.current,
-    message: trimmedInput,
-    messageLength: trimmedInput.length
-  });
-  
-  setIsLoading(true);
-  try {
-    const result = await sendMessageToAdmin(user.id, trimmedInput);
+    const trimmedInput = input.trim();
+    if (!trimmedInput || !chatIdRef.current) {
+      console.log('🔍 Debug: Cannot send message - empty input or no chat ID');
+      return;
+    }
     
-    console.log('✅ Debug: Message sent successfully, chat ID:', result);
+    console.log('🔍 Debug: Sending message:', {
+      userId: user.id,
+      chatId: chatIdRef.current,
+      message: trimmedInput,
+      messageLength: trimmedInput.length
+    });
     
-    // Only clear input after successful send
-    setInput("");
-  } catch (err) {
-    console.error('❌ Debug: Failed to send message:', err);
-    setError("Failed to send message. Please try again.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+    setIsLoading(true);
+    try {
+      const result = await sendMessageToAdmin(user.id, trimmedInput);
+      console.log('✅ Debug: Message sent successfully, chat ID:', result);
+      setInput("");
+    } catch (err) {
+      console.error('❌ Debug: Failed to send message:', err);
+      setError("Failed to send message. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -189,7 +157,7 @@ const formatDate = (date: string | Date) => {
                     className="w-full h-full rounded-full object-cover"
                   />
                 ) : (
-                  getInitials(adminProfile.full_name)
+                  getUserInitials(adminProfile.full_name)
                 )}
               </div>
               <div className="flex-1">
@@ -209,7 +177,9 @@ const formatDate = (date: string | Date) => {
               </div>
               <div className="flex items-center space-x-2 text-gray-600">
                 <Clock className="w-3 h-3 md:w-4 md:h-4" />
-                <span className="text-xs md:text-sm">Last active: {formatTime(adminProfile.last_sign_in_at)}</span>
+                <span className="text-xs md:text-sm">
+                  Last active: {formatMessageTime(adminProfile.last_sign_in_at, userTimezone)}
+                </span>
               </div>
             </div>
 
@@ -226,6 +196,9 @@ const formatDate = (date: string | Date) => {
             <h3 className="font-medium text-emerald-900 mb-1 md:mb-2 text-sm md:text-base">Need Help?</h3>
             <p className="text-emerald-700 text-xs md:text-sm">
               Click START CHAT to begin a conversation with your support representative.
+            </p>
+            <p className="text-emerald-600 text-xs mt-1">
+              Your timezone: {userTimezone}
             </p>
           </div>
         </div>
@@ -244,7 +217,7 @@ const formatDate = (date: string | Date) => {
           <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
         </button>
         <div className="w-8 h-8 md:w-10 md:h-10 bg-white/20 rounded-full flex items-center justify-center text-white text-xs md:text-sm font-semibold">
-          {getInitials(adminProfile.full_name)}
+          {getUserInitials(adminProfile.full_name)}
         </div>
         <div className="flex-1">
           <h2 className="font-semibold text-sm md:text-base">{adminProfile.full_name}</h2>
@@ -266,31 +239,32 @@ const formatDate = (date: string | Date) => {
       ) : (
         <>
           <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3">
-  {messages.map((msg) => (
-    <div
-      key={msg.id}
-      className={`flex ${msg.sender_id === user.id ? "justify-end" : "justify-start"}`}
-    >
-      <div
-        className={`max-w-[80%] px-3 py-2 rounded-lg shadow text-sm whitespace-pre-line ${
-          msg.sender_id === user.id
-            ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white"
-            : "bg-gray-200 text-gray-800"
-        }`}
-      >
-        {/* Just show the message content - no name */}
-        {msg.message}
-        <div className={`flex items-center justify-end space-x-1 mt-1 text-xs ${
-          msg.sender_id === user.id ? "text-emerald-100" : "text-gray-500"
-        }`}>
-          <span>{formatDate(msg.created_at)}</span>
-          {msg.sender_id === user.id && <CheckCheck className="w-3 h-3" />}
-        </div>
-      </div>
-    </div>
-  ))}
-  <div ref={messagesEndRef} />
-</div>
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${msg.sender_id === user.id ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-[80%] px-3 py-2 rounded-lg shadow text-sm whitespace-pre-line ${
+                    msg.sender_id === user.id
+                      ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white"
+                      : "bg-gray-200 text-gray-800"
+                  }`}
+                >
+                  {msg.message}
+                  <div className={`flex items-center justify-end space-x-1 mt-1 text-xs ${
+                    msg.sender_id === user.id ? "text-emerald-100" : "text-gray-500"
+                  }`}>
+                    <span title={formatDetailedTime(msg.created_at, userTimezone)}>
+                      {formatMessageTime(msg.created_at, userTimezone)}
+                    </span>
+                    {msg.sender_id === user.id && <CheckCheck className="w-3 h-3" />}
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
           <div className="p-3 md:p-4 border-t bg-gray-50">
             <div className="flex space-x-2">
               <textarea

@@ -286,45 +286,75 @@ export async function getChatDetails(chatId: string) {
   }
 }
 
+// Update your createChatMessage function in @/lib/admin
+
+// Update your createChatMessage function to match the expected schema
+
 export async function createChatMessage(
   chatId: string,
-  message: string,
-  message_type: 'text' | 'file' | 'image' = 'text' // Keep parameter for future use
+  messageContent: string,
+  adminId: string,
+  message_type: 'text' | 'file' | 'image' = 'text'
 ) {
+  console.log('createChatMessage called with:', { chatId, messageContent, adminId, message_type })
+  
   try {
-    // Get current admin user
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser()
-    if (authError || !user) throw new Error('Not authenticated')
-
-    // Create message
+    // Create message with the provided adminId
     const { data: messageData, error } = await supabaseAdmin
       .from('messages')
       .insert({
         chat_id: chatId,
-        message,
-        sender_id: user.id,
-        user_id: user.id // Add this since it's in your schema
-        // Remove message_type since it's not in your schema
+        message: messageContent, // This is the content field
+        sender_id: adminId,
+        user_id: adminId,
+        created_at: new Date().toISOString() // Ensure created_at is set
       })
       .select(`
-        *,
+        id,
+        chat_id,
+        sender_id,
+        message,
+        created_at,
         profiles:sender_id (id, full_name, email)
       `)
       .single()
 
-    if (error) throw error
+    console.log('Insert result:', { messageData, error })
+
+    if (error) {
+      console.error('Database insert error:', error)
+      throw error
+    }
+
+    // Transform the data to match your frontend interface
+    const transformedMessage = {
+      id: messageData.id,
+      chat_id: messageData.chat_id,
+      sender_id: messageData.sender_id,
+      content: messageData.message, // Map 'message' field to 'content'
+      message_type: 'text',
+      created_at: messageData.created_at,
+      profiles: messageData.profiles
+    }
 
     // Update chat's updated_at timestamp
-    await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from('chats')
       .update({ updated_at: new Date().toISOString() })
       .eq('id', chatId)
 
+    if (updateError) {
+      console.error('Chat update error:', updateError)
+    }
+
+    console.log('Message created successfully:', transformedMessage)
+
     return {
       success: true,
-      message: messageData
+      message: transformedMessage
     }
   } catch (error: any) {
+    console.error('Create message error:', error)
     return {
       success: false,
       error: error.message || 'Failed to send message'
