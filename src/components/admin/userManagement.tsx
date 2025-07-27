@@ -2,25 +2,9 @@ import { useState, useEffect } from 'react'
 import { Plus, Search, Eye, Edit, Trash2, MoreVertical, UserPlus, Users, RefreshCw } from 'lucide-react'
 import Image from 'next/image'
 import CreateUserModal from '@/components/admin/createUserModal'
+import { User } from '@/types/adminTypes'
 import toast from 'react-hot-toast'
 
-// Type definitions
-interface Account {
-  id: string
-  // Add other account properties as needed
-}
-
-interface User {
-  id: string
-  full_name?: string
-  email: string
-  phone?: string
-  role: 'user' | 'admin'
-  avatar_url?: string
-  created_at: string
-  last_sign_in_at?: string
-  accounts?: Account[]
-}
 
 interface UsersManagementProps {
   initialUsers?: User[]

@@ -1,6 +1,13 @@
 // utils/chatService.ts
 import supabase from '@/utils/supabaseClient'
-
+import type { RealtimePostgresInsertPayload } from '@supabase/supabase-js'
+type Message = {
+  id: string;
+  chat_id: string;
+  sender_id: string;
+  message: string;
+  created_at: string;
+};
 /**
  * Get or create a chat between user and admin WITHOUT sending a message
  */
@@ -100,7 +107,7 @@ export const fetchMessages = async (chatId: string) => {
  */
 export const subscribeToMessages = (
   chatId: string,
-  callback: (payload: any) => void
+  callback: (payload:  RealtimePostgresInsertPayload<Message>) => void
 ) => {
   return supabase
     .channel(`chat-messages-${chatId}`)

@@ -17,7 +17,7 @@ interface HeaderProps {
   onSignOut: () => void;
   setIsMenuOpen: (open: boolean) => void;
   t: Translation;
-  userProfile: UserProfile;
+  userProfile: UserProfile | null;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 

@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { 
-  RealtimePostgresChangesPayload,
   RealtimePostgresInsertPayload,
   RealtimePostgresUpdatePayload 
 } from '@supabase/supabase-js';
@@ -65,29 +64,30 @@ export function useChat(userId: string | undefined): UseChatReturn {
   const [error, setError] = useState<string | null>(null);
 
   // Fetch user's conversations
-  const fetchConversations = async () => {
-    if (!userId) {
-      setError('User ID is required');
-      return;
-    }
+  const fetchConversations = useCallback(async () => {
+  if (!userId) {
+    setError('User ID is required');
+    return;
+  }
 
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch(`/api/users/chat/conversations?user_id=${userId}`);
-      const data = await response.json();
-      
-      if (response.ok) {
-        setConversations(data.conversations);
-      } else {
-        setError(data.error);
-      }
-    } catch (err) {
-      setError('Failed to fetch conversations');
-    } finally {
-      setLoading(false);
+  try {
+    setLoading(true);
+    setError(null);
+    const response = await fetch(`/api/users/chat/conversations?user_id=${userId}`);
+    const data = await response.json();
+    
+    if (response.ok) {
+      setConversations(data.conversations);
+    } else {
+      setError(data.error);
     }
-  };
+  } catch (err) {
+    console.error('Error fetching conversations:', err);
+    setError('Failed to fetch conversations');
+  } finally {
+    setLoading(false);
+  }
+}, [userId]);
 
   // Create new conversation
   const createConversation = async (title: string, initialMessage: string): Promise<Conversation | null> => {
@@ -123,6 +123,7 @@ export function useChat(userId: string | undefined): UseChatReturn {
         return null;
       }
     } catch (err) {
+      console.error('Error creating conversation:', err);
       setError('Failed to create conversation');
       return null;
     } finally {
@@ -159,6 +160,7 @@ export function useChat(userId: string | undefined): UseChatReturn {
         return null;
       }
     } catch (err) {
+      console.error('Error sending message:', err);
       setError('Failed to send message');
       return null;
     }
@@ -195,6 +197,7 @@ export function useChat(userId: string | undefined): UseChatReturn {
         return null;
       }
     } catch (err) {
+      console.error('Error editing message:', err);
       setError('Failed to edit message');
       return null;
     }
@@ -221,6 +224,7 @@ export function useChat(userId: string | undefined): UseChatReturn {
         setError(data.error);
       }
     } catch (err) {
+      console.error('Error loading messages:', err);
       setError('Failed to load messages');
     } finally {
       setLoading(false);
@@ -333,7 +337,7 @@ export function useChat(userId: string | undefined): UseChatReturn {
     if (userId) {
       fetchConversations();
     }
-  }, [userId]);
+  }, [userId, fetchConversations]);
 
   return {
     conversations,

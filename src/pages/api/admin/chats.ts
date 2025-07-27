@@ -112,11 +112,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: `Method ${req.method} not allowed` 
     })
 
-  } catch (error: any) {
-    console.error('Chats API error:', error)
+  } catch (error: unknown) {
+    const err = error as Error;
     return res.status(500).json({
-      success: false,
-      error: error.message || 'Internal server error'
-    })
+      error: err.message || 'Internal server error',
+    });
   }
 }

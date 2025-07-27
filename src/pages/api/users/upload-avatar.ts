@@ -57,7 +57,7 @@ export default async function handler(
     const filePath = `avatars/${fileName}`;
 
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('user-avatars')
       .upload(filePath, fileContent, {
         contentType: file.mimetype || 'image/jpeg',

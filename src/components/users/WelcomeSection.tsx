@@ -11,13 +11,14 @@ interface UserProfile {
   full_name: string;
   email: string;
   accounts?: Account[];
-  // Add other profile properties as needed
 }
 
 interface Translation {
   accountDisabled: string;
   accountActive: string;
-  // Add other translation keys as needed
+  goodMorning: string;
+  goodAfternoon: string;
+  goodEvening: string;
 }
 
 interface WelcomeSectionProps {

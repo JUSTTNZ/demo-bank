@@ -43,9 +43,10 @@ export default async function handler(
     }
 
     return res.setHeader('Allow', ['GET', 'POST']).status(405).end(`Method ${method} Not Allowed`)
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     return res.status(500).json({
-      error: error.message || 'Unexpected server error',
-    })
+      error: err.message || 'Internal server error',
+    });
   }
 }

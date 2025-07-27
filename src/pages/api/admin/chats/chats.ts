@@ -39,9 +39,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     return res.status(405).json({ error: `Method ${method} not allowed` })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     return res.status(500).json({
-      error: error.message || 'Internal server error',
-    })
+      error: err.message || 'Internal server error',
+    });
   }
 }

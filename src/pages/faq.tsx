@@ -14,7 +14,7 @@ export default function FAQPage() {
   const [currentLanguage, setCurrentLanguage] = useState('en');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
   

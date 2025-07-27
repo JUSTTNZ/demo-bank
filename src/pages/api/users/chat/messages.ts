@@ -3,30 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 import { NextApiRequest, NextApiResponse } from 'next';
 
 // Define types for your database tables
-type Chat = {
-  id: string;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
-};
-
-type Profile = {
-  id: string;
-  full_name: string;
-  avatar_url: string | null;
-  role: string;
-};
-
-type Message = {
-  id: string;
-  chat_id: string;
-  sender_id: string;
-  user_id: string;
-  text: string;
-  sent_at: string;
-  created_at: string;
-  profiles?: Profile;
-};
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -96,9 +72,12 @@ async function getMessages(req: NextApiRequest, res: NextApiResponse) {
     }
 
     res.status(200).json({ messages });
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
+ } catch (error: unknown) {
+  const err = error instanceof Error ? error.message : String(error);
+  console.error('getMessages error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+}
+
 }
 
 // Send new message
@@ -166,9 +145,12 @@ async function sendMessage(req: NextApiRequest, res: NextApiResponse) {
       .eq('id', chat_id);
 
     res.status(201).json({ message });
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
+  } catch (error: unknown) {
+  const err = error instanceof Error ? error.message : String(error);
+  console.error('getMessages error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+}
+
 }
 
 // Edit user's message (users can only edit their own messages)
@@ -226,7 +208,9 @@ async function editMessage(req: NextApiRequest, res: NextApiResponse) {
     }
 
     res.status(200).json({ message: updatedMessage });
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
+  } catch (error: unknown) {
+  const err = error instanceof Error ? error.message : String(error);
+  console.error('getMessages error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+}
 }

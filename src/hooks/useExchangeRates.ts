@@ -14,6 +14,7 @@ export const useExchangeRates = () => {
         const rates = await userApi.getExchangeRates();
         setExchangeRates(rates);
       } catch (err) {
+        console.error('Error fetching exchange rates:', err);
         setError('Failed to load exchange rates');
       } finally {
         setLoading(false);

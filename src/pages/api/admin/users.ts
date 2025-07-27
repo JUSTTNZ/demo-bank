@@ -60,10 +60,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
 
       return res.status(200).json({ success: true, users: combined })
-    } catch (error: any) {
-      console.error('GET users error:', error)
-      return res.status(500).json({ success: false, error: error.message })
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error))
+      console.error('GET users error:', err)
+      return res.status(500).json({ success: false, error: err.message })
     }
+
   }
 
   if (req.method === 'POST') {
@@ -230,10 +232,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         userId: user.user.id,
         message: 'User created successfully'
       })
-    } catch (error: any) {
-      console.error('POST users error:', error)
-      return res.status(500).json({ success: false, error: error.message })
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error))
+      console.error('GET users error:', err)
+      return res.status(500).json({ success: false, error: err.message })
     }
+
   }
 
   res.setHeader('Allow', ['GET', 'POST'])

@@ -38,8 +38,10 @@ export default async function handler(
     if (error) throw new Error(error.message)
 
     return res.status(200).json({ success: true })
-  } catch (error: any) {
-    console.error('Error sending reset email:', error)
-    return res.status(500).json({ success: false, error: error.message })
+  } catch (error: unknown) {
+    const err = error as Error;
+    return res.status(500).json({
+      error: err.message || 'Internal server error',
+    });
   }
 }

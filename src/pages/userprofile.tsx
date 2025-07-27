@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { Header } from '@/components/users/Header';
 import { useRouter } from 'next/router';
 import supabase from '@/utils/supabaseClient';
@@ -17,13 +18,7 @@ import {
   HelpCircle,
   Shield,
   Mail,
-  Phone,
-  MapPin,
   Calendar,
-  Edit3,
-  Check,
-  X,
-  Upload
 } from 'lucide-react';
 
 export default function UserProfilePage() {
@@ -173,7 +168,7 @@ export default function UserProfilePage() {
           <div className="bg-gradient-to-r from-green-600 to-green-700 h-32 relative">
             <div className="absolute -bottom-16 left-8">
               <div className="relative">
-                <img 
+                <Image
                   src={userProfile.avatar_url || 'https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff'} 
                   alt="Profile Avatar" 
                   className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover"

@@ -69,7 +69,7 @@ export default function HomePage() {
       clearInterval(progressInterval)
       clearTimeout(navigationTimer)
     }
-  }, [router])
+  }, [router, messages.length])
 
   const currentMessage = messages[currentMessageIndex]
   const IconComponent = currentMessage.icon

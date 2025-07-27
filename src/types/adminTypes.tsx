@@ -4,7 +4,7 @@ export interface User {
   email: string
   full_name?: string
   role: 'admin' | 'user'
-  accounts?: unknown[]
+  accounts?: Account[]
   created_at: string
   last_sign_in_at?: string
   avatar_url?: string
@@ -75,19 +75,29 @@ export interface CreateUserPayload {
 }
 
 export interface CreateUserResponse {
-  success: boolean
-  user?: any
-  profile?: any
-  account?: any
-  error?: string
+  success: boolean;
+  user?: User;
+  profile?: UserProfile; // define this interface if needed
+  account?: Account;
+  error?: string;
+}
+
+
+
+export interface UserProfile {
+  id: string
+  email: string
+  full_name?: string
+  avatar_url?: string
+  phone?: string
+  // Add other fields as needed
 }
 
 export interface GetAllUsersResponse {
-  success: boolean
-  users?: any[]
-  error?: string
+  success: boolean;
+  users?: User[];
+  error?: string;
 }
-
 
 
 export interface StatCardProps {

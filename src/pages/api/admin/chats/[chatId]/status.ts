@@ -7,7 +7,7 @@ export async function PATCH(
 ) {
   try {
     const { status } = await request.json()
-    
+
     if (!['active', 'closed', 'pending'].includes(status)) {
       return NextResponse.json(
         { error: 'Invalid status value' },
@@ -16,15 +16,16 @@ export async function PATCH(
     }
 
     const { success, error } = await updateChatStatus(params.chatId, status)
-    
+
     if (!success) {
       return NextResponse.json({ error }, { status: 400 })
     }
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error))
     return NextResponse.json(
-      { error: error.message || 'Failed to update status' },
+      { error: err.message || 'Failed to update status' },
       { status: 500 }
     )
   }

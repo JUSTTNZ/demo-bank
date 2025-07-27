@@ -15,7 +15,7 @@ const supabaseAdmin = createClient(
 // Test function to verify service role access
 async function testServiceRoleAccess() {
   try {
-    const { data, error } = await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from('accounts')
       .select('count')
       .limit(1)
@@ -59,16 +59,16 @@ export async function createAccount(userId: string, accountData: { balance?: num
       success: true,
       account: data[0]
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Create account error:', error)
-    return {
-      success: false,
-      error: error.message
-    }
+    if (error instanceof Error) {
+    return { success: false, error: error.message };
+  }
+  return { success: false, error: String(error) };
   }
 }
 
-export async function updateAccount(accountId: string, updates: any) {
+export async function updateAccount(accountId: string, updates: unknown) {
   try {
     const { data, error } = await supabaseAdmin
       .from('accounts')
@@ -84,12 +84,12 @@ export async function updateAccount(accountId: string, updates: any) {
       success: true,
       account: data[0]
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Update account error:', error)
-    return {
-      success: false,
-      error: error.message
-    }
+    if (error instanceof Error) {
+    return { success: false, error: error.message };
+  }
+  return { success: false, error: String(error) };
   }
 }
 
@@ -129,10 +129,10 @@ export async function getAllUsers() {
     })) || []
 
     return { success: true, users: transformedUsers }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get users error:', error)
-    return { success: false, error: error.message }
-  }
+    const err = error instanceof Error ? error : new Error(String(error));
+  return { success: false, error: err.message };  }
 }
 
 export async function getAllAccounts() {
@@ -163,10 +163,10 @@ export async function getAllAccounts() {
     })) || []
 
     return { success: true, accounts: accountsWithProfiles }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get accounts error:', error)
-    return { success: false, error: error.message }
-  }
+    const err = error instanceof Error ? error : new Error(String(error));
+  return { success: false, error: err.message };  }
 }
 
 export async function getAllChats() {
@@ -241,12 +241,12 @@ export async function getAllChats() {
       success: true,
       chats: formattedChats
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get chats error:', error)
-    return {
-      success: false,
-      error: error.message
-    }
+    if (error instanceof Error) {
+    return { success: false, error: error.message };
+  }
+  return { success: false, error: String(error) };
   }
 }
 export async function getChatDetails(chatId: string) {
@@ -278,11 +278,13 @@ export async function getChatDetails(chatId: string) {
         messages: [{ count: messageCount || 0 }]
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
     return {
       success: false,
-      error: error.message || 'Failed to fetch chat details'
-    }
+      error: err.message || 'Failed to send message'
+    };
+
   }
 }
 
@@ -353,12 +355,14 @@ export async function createChatMessage(
       success: true,
       message: transformedMessage
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Create message error:', error)
+    const err = error instanceof Error ? error : new Error(String(error));
     return {
       success: false,
-      error: error.message || 'Failed to send message'
-    }
+      error: err.message || 'Failed to send message'
+    };
+
   }
 }
 
@@ -366,7 +370,7 @@ export async function getChatMessages(chatId: string) {
   try {
     console.log('Fetching messages for chat:', chatId) // Debug log
 
-    // First, let's check if there are any messages at all for this chat
+    // First, let's check if there are unknown messages at all for this chat
     const { count: totalMessages, error: countError } = await supabaseAdmin
       .from('messages')
       .select('*', { count: 'exact', head: true })
@@ -413,12 +417,12 @@ export async function getChatMessages(chatId: string) {
       success: true,
       messages: transformedMessages
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get messages error:', error)
-    return {
-      success: false,
-      error: error.message
-    }
+    if (error instanceof Error) {
+    return { success: false, error: error.message };
+  }
+  return { success: false, error: String(error) };
   }
 }
 
@@ -474,12 +478,12 @@ export async function getChatMessagesAlternative(chatId: string) {
       success: true,
       messages: messagesWithProfiles
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get messages alternative error:', error)
-    return {
-      success: false,
-      error: error.message
-    }
+    if (error instanceof Error) {
+    return { success: false, error: error.message };
+  }
+  return { success: false, error: String(error) };
   }
 }
 export async function deleteChat(chatId: string) {
@@ -497,12 +501,12 @@ export async function deleteChat(chatId: string) {
     return {
       success: true
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Delete chat error:', error)
-    return {
-      success: false,
-      error: error.message
-    }
+    if (error instanceof Error) {
+    return { success: false, error: error.message };
+  }
+  return { success: false, error: String(error) };
   }
 }
 
@@ -535,11 +539,13 @@ export async function updateChatStatus(
       success: true,
       chat
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
     return {
       success: false,
-      error: error.message || 'Failed to update chat status'
-    }
+      error: err.message || 'Failed to send message'
+    };
+
   }
 }
 export async function getDashboardStats() {
@@ -639,8 +645,8 @@ export async function getDashboardStats() {
         revenueGrowthRate
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get dashboard stats error:', error)
-    return { success: false, error: error.message }
-  }
+    const err = error instanceof Error ? error : new Error(String(error));
+  return { success: false, error: err.message };  }
 }

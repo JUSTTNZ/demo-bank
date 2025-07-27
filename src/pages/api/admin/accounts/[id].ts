@@ -14,7 +14,7 @@ const supabaseAdmin = createClient(
   }
 )
 
-// Delete account function (since it's not in your lib/admin file)
+// Delete account function
 async function deleteAccount(accountId: string) {
   try {
     const { error } = await supabaseAdmin
@@ -27,11 +27,13 @@ async function deleteAccount(accountId: string) {
     }
 
     return { success: true }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Delete account error:', error)
+
+    const message = error instanceof Error ? error.message : 'Unknown error'
     return {
       success: false,
-      error: error.message
+      error: message
     }
   }
 }
@@ -48,16 +50,15 @@ export default async function handler(
 
   try {
     switch (req.method) {
-      case 'PUT':
-        // Update account
+      case 'PUT': {
         const updateData = req.body
-        
+
         if (!updateData || typeof updateData !== 'object') {
           return res.status(400).json({ error: 'Update data is required' })
         }
 
         const updateResult = await updateAccount(id, updateData)
-        
+
         if (!updateResult.success) {
           return res.status(500).json({ error: updateResult.error })
         }
@@ -66,11 +67,11 @@ export default async function handler(
           success: true,
           account: updateResult.account
         })
+      }
 
-      case 'DELETE':
-        // Delete account
+      case 'DELETE': {
         const deleteResult = await deleteAccount(id)
-        
+
         if (!deleteResult.success) {
           return res.status(500).json({ error: deleteResult.error })
         }
@@ -79,15 +80,18 @@ export default async function handler(
           success: true,
           message: 'Account deleted successfully'
         })
+      }
 
       default:
         return res.status(405).json({ error: 'Method not allowed' })
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API Error:', error)
-    return res.status(500).json({ 
+
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return res.status(500).json({
       error: 'Internal server error',
-      details: error.message 
+      details: message
     })
   }
 }
