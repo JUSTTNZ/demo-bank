@@ -6,15 +6,12 @@ import {
   Search, 
   Filter, 
   Clock, 
-  CheckCircle2, 
   User, 
-  MoreVertical,
   Eye,
   Archive,
   Trash2,
   MessageSquare,
-  AlertCircle,
-  ArrowLeft
+  AlertCircle
 } from 'lucide-react'
 import ChatDetail from '@/components/admin/chatdetails'
 
@@ -41,7 +38,6 @@ interface Props {
 const ChatsManagement: React.FC<Props> = ({ onRefresh }) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('all')
-  const [selectedChat, setSelectedChat] = useState<string | null>(null)
   const [chats, setChats] = useState<Chat[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -59,7 +55,7 @@ const ChatsManagement: React.FC<Props> = ({ onRefresh }) => {
       } else {
         setError(data.error || 'Failed to fetch chats')
       }
-    } catch (err) {
+    } catch {
       setError('Network error occurred')
     } finally {
       setLoading(false)
@@ -140,18 +136,13 @@ const ChatsManagement: React.FC<Props> = ({ onRefresh }) => {
           } else {
             alert('Failed to delete chat')
           }
-        } catch (err) {
+        } catch {
           alert('Error deleting chat')
         }
       }
     }
     
     console.log(`${action} chat:`, chatId)
-  }
-
-  const assignToMe = (chatId: string) => {
-    console.log('Assigning chat to current admin:', chatId)
-    // TODO: Implement assign logic
   }
 
   const formatDate = (dateString: string) => {

@@ -59,7 +59,7 @@ interface Props {
 
 const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone }) => {
   const [chatDetails, setChatDetails] = useState<ChatDetails | null>(null)
-  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [currentUser, setCurrentUser] = useState<{ id: string; email: string; user_metadata?: { full_name?: string } } | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -68,10 +68,10 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone })
   const [showOptions, setShowOptions] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
-  const subscriptionRef = useRef<any>(null)
+  const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   const currentAdminTimezone = adminTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone
-  const { formatMessageTime, formatDetailedTime, getRelativeTime } = useTimestampFormatter(currentAdminTimezone)
+  const { formatMessageTime, formatDetailedTime } = useTimestampFormatter(currentAdminTimezone)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -82,7 +82,13 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone })
     const getCurrentUser = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
-        if (user) setCurrentUser(user)
+        if (user && user.email) {
+          setCurrentUser({
+            id: user.id,
+            email: user.email,
+            user_metadata: user.user_metadata
+          })
+        }
       } catch (err) {
         console.error('Error getting user:', err)
       }
@@ -109,8 +115,8 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone })
         
         // Transform and filter messages
         const validMessages = messagesData.messages
-          .filter((msg: any) => msg.content?.trim() && msg.created_at)
-          .map((msg: any) => ({
+          .filter((msg: Message) => msg.content?.trim() && msg.created_at)
+          .map((msg: Message) => ({
             id: msg.id,
             chat_id: msg.chat_id,
             sender_id: msg.sender_id,
@@ -152,7 +158,7 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone })
           )
           .subscribe()
 
-      } catch (err) {
+      } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Unknown error occurred')
       } finally {
         setLoading(false)
@@ -191,7 +197,7 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone })
             seenBy: currentUser.id
           })
         })
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Error marking messages as seen:', err)
       }
     }
@@ -246,7 +252,7 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone })
       setMessages(prev => prev.map(msg => 
         msg.id === tempId ? { ...data.message, profiles: optimisticMsg.profiles } : msg
       ))
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error sending message:', err)
       toast.error('Failed to send message')
       // Remove optimistic message on error
@@ -258,7 +264,7 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone })
   }
 
   const getReadReceiptIcon = (message: Message) => {
-    if (message.sender_id !== currentUser?.id) return null
+    if (!currentUser || message.sender_id !== currentUser.id) return null
     return message.seen_at ? (
       <CheckCheck className="w-3 h-3 text-blue-500" />
     ) : (
@@ -278,10 +284,11 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone })
         if (data.success) {
           setChatDetails(prev => prev ? { ...prev, status: 'closed' } : null)
           toast.success('Chat closed successfully')
+          onClose?.()
         } else {
           throw new Error(data.error)
         }
-      } catch (err) {
+      } catch (err: unknown) {
         toast.error('Failed to close chat')
       }
     }

@@ -4,10 +4,25 @@ import { X, User, Mail, Lock, Shield, CreditCard, DollarSign } from 'lucide-reac
 import toast from 'react-hot-toast'
 import { NewUser } from '@/types/adminTypes'
 
+interface UserProfile {
+  id: string
+  role: string
+  full_name?: string
+  email?: string
+}
+
+interface AuthUser {
+  id: string
+  email?: string
+  user_metadata?: {
+    full_name?: string
+  }
+}
+
 const CreateUserModal = ({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) => {
   const [loading, setLoading] = useState(false)
-  const [currentUser, setCurrentUser] = useState<any>(null)
-  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null)
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
+  const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null)
   const [newUser, setNewUser] = useState<NewUser>({
     email: '',
     password: '',
