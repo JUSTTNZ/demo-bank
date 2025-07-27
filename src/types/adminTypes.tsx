@@ -3,7 +3,7 @@ export interface User {
   id: string
   email: string
   full_name?: string
-  role: string
+  role: 'admin' | 'user'
   accounts?: unknown[]
   created_at: string
   last_sign_in_at?: string

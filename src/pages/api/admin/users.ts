@@ -1,4 +1,4 @@
-// /api/admin/users/index.ts - Fixed to bypass RLS for admin operations
+// /api/admin/users/index.ts - Fixed to properly handle created_by_admin_id
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
 
@@ -54,6 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           avatar_url: profile?.avatar_url || null,
           created_at: user.created_at,
           last_sign_in_at: user.last_sign_in_at,
+          created_by_admin_id: profile?.created_by_admin_id || null,
           accounts: userAccounts || [],
         }
       })
@@ -67,9 +68,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     try {
-      const { email, password, fullName, role, createAccount, initialBalance } = req.body
+      const { email, password, fullName, role, createAccount, initialBalance, adminId } = req.body
 
-      console.log('Creating user with data:', { email, fullName, role, createAccount, initialBalance })
+      console.log('Creating user with data:', { email, fullName, role, createAccount, initialBalance, adminId })
 
       // Validate required fields
       if (!email || !password || !fullName) {
@@ -78,6 +79,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           error: 'Email, password, and fullName are required' 
         })
       }
+
+      // Validate adminId is provided
+      if (!adminId) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Admin ID is required for user creation' 
+        })
+      }
+
+      // Verify the admin exists in profiles table
+      const { data: adminProfile, error: adminCheckError } = await supabaseAdmin
+        .from('profiles')
+        .select('id, role')
+        .eq('id', adminId)
+        .single()
+
+      if (adminCheckError || !adminProfile) {
+        console.error('Admin verification failed:', adminCheckError)
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Invalid admin ID or admin not found' 
+        })
+      }
+
+      if (adminProfile.role !== 'admin') {
+        return res.status(403).json({ 
+          success: false, 
+          error: 'Only admin users can create new users' 
+        })
+      }
+
+      console.log('Admin verified:', adminProfile)
 
       // Create user in Supabase Auth
       const { data: user, error } = await supabaseAdmin.auth.admin.createUser({
@@ -109,13 +142,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log('Profile already exists:', existingProfile)
         console.log('Updating existing profile instead of creating new one')
         
-        // Update existing profile
+        // Update existing profile with created_by_admin_id
         const { data: updatedProfile, error: updateError } = await supabaseAdmin
           .from('profiles')
           .update({
             full_name: fullName,
             email: email,
-            role: role || 'user'
+            role: role || 'user',
+            created_by_admin_id: adminId,
+            updated_at: new Date().toISOString()
           })
           .eq('id', user.user.id)
           .select()
@@ -127,50 +162,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         console.log('Profile updated successfully:', updatedProfile)
       } else {
-        // Create new profile
+        // Create new profile with created_by_admin_id
         console.log('Creating new profile for user:', user.user.id)
         
-        // METHOD 1: Try RPC first (if you created the function)
-        const { data: profileResult, error: profileError } = await supabaseAdmin
-          .rpc('create_user_profile', {
-            user_id: user.user.id,
-            user_email: email,
-            user_full_name: fullName,
-            user_role: role || 'user'
-          })
+        const profileData = {
+          id: user.user.id,
+          full_name: fullName,
+          email: email,
+          role: role || 'user',
+          created_by_admin_id: adminId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+
+        console.log('Profile data to insert:', profileData)
+
+        // Try to create profile directly
+        const { data: newProfile, error: profileError } = await supabaseAdmin
+          .from('profiles')
+          .insert([profileData])
+          .select()
 
         if (profileError) {
-          console.error('Profile creation via RPC failed:', profileError)
+          console.error('Profile creation failed:', profileError)
           
-          // FALLBACK METHOD 2: Direct SQL query
-          const { data: directInsert, error: directError } = await supabaseAdmin
-            .from('profiles')
-            .insert([{
-              id: user.user.id,
-              full_name: fullName,
-              email: email,
-              role: role || 'user',
-              created_by_admin_id: req.body.adminId
-            }])
-            .select()
-
-          if (directError) {
-            console.error('Direct profile creation also failed:', directError)
-            
-            // Clean up the auth user
-            try {
-              await supabaseAdmin.auth.admin.deleteUser(user.user.id)
-            } catch (cleanupError) {
-              console.error('Failed to cleanup auth user:', cleanupError)
-            }
-            
-            throw new Error(`Profile creation failed: ${directError.message}`)
+          // Clean up the auth user
+          try {
+            await supabaseAdmin.auth.admin.deleteUser(user.user.id)
+            console.log('Cleaned up auth user after profile creation failure')
+          } catch (cleanupError) {
+            console.error('Failed to cleanup auth user:', cleanupError)
           }
           
-          console.log('Profile created via direct insert:', directInsert)
-        } else {
-          console.log('Profile created via RPC:', profileResult)
+          throw new Error(`Profile creation failed: ${profileError.message}`)
         }
+        
+        console.log('Profile created successfully:', newProfile)
       }
 
       // Create account if requested
@@ -192,12 +219,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (accountError) {
           console.error('Account creation error:', accountError)
+          // Don't throw error here, just log it since the user was created successfully
         } else {
           console.log('Account created successfully:', account)
         }
       }
 
-      return res.status(200).json({ success: true, userId: user.user.id })
+      return res.status(200).json({ 
+        success: true, 
+        userId: user.user.id,
+        message: 'User created successfully'
+      })
     } catch (error: any) {
       console.error('POST users error:', error)
       return res.status(500).json({ success: false, error: error.message })

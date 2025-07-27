@@ -48,7 +48,7 @@ const Sidebar = ({
       <div
         className={`fixed top-0 left-0 h-screen w-64 bg-white/95 backdrop-blur-md border-r border-gray-200/50 shadow-xl transition-transform duration-300 ease-in-out z-50
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-          lg:translate-x-0 lg:relative lg:h-auto lg:w-64`}
+          lg:translate-x-0 lg:fixed lg:h-screen`}
       >
         {/* Header */}
         <div className="p-6 border-b border-gray-200/50">
@@ -72,7 +72,7 @@ const Sidebar = ({
         </div>
         
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto h-[calc(100vh-180px)]">
           {menuItems.map((item) => (
             <button
               key={item.id}
@@ -95,7 +95,7 @@ const Sidebar = ({
         </nav>
         
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200/50">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200/50 bg-white/95">
           <button
             onClick={onLogout}
             className="w-full flex items-center px-4 py-3 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl transition-all duration-200 group"

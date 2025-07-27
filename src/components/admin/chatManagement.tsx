@@ -167,6 +167,7 @@ const ChatsManagement: React.FC<Props> = ({ onRefresh }) => {
       <ChatDetail 
         chatId={selectedChatId} 
         onBack={() => setSelectedChatId(null)}
+        className="flex-1 overflow-hidden"
       />
     )
   }

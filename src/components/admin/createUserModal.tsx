@@ -7,6 +7,7 @@ import { NewUser } from '@/types/adminTypes'
 const CreateUserModal = ({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) => {
   const [loading, setLoading] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null)
   const [newUser, setNewUser] = useState<NewUser>({
     email: '',
     password: '',
@@ -17,44 +18,84 @@ const CreateUserModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
   })
 
   useEffect(() => {
-  const getUser = async () => {
-    const {
-      data: { user },
-      error
-    } = await supabase.auth.getUser()
+    const getUser = async () => {
+      try {
+        // Get the authenticated user
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (user) {
-      setCurrentUser(user) // store in state
-    } else {
-      console.error('No user found:', error)
+        if (authError || !user) {
+          console.error('Auth error:', authError)
+          toast.error('Unable to verify admin credentials')
+          return
+        }
+
+        console.log('Current auth user:', user.id)
+        setCurrentUser(user)
+
+        // Get the user's profile to verify admin status
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, role, full_name, email')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError || !profile) {
+          console.error('Profile fetch error:', profileError)
+          toast.error('Unable to verify admin profile')
+          return
+        }
+
+        console.log('Current user profile:', profile)
+        setCurrentUserProfile(profile)
+
+        // Verify admin role
+        if (profile.role !== 'admin') {
+          toast.error('Only admin users can create new users')
+          onClose()
+          return
+        }
+
+      } catch (error) {
+        console.error('Error fetching user data:', error)
+        toast.error('Authentication error')
+        onClose()
+      }
     }
-  }
 
-  getUser()
-}, [])
-
+    getUser()
+  }, [onClose])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!currentUser || !currentUserProfile) {
+      toast.error('Admin credentials not verified')
+      return
+    }
+
+    if (currentUserProfile.role !== 'admin') {
+      toast.error('Only admin users can create new users')
+      return
+    }
+
     setLoading(true)
     
     // Debug logging - check what data we're about to send
     console.log('=== DEBUG: Form submission ===')
     console.log('newUser state:', newUser)
-    console.log('fullName value:', newUser.fullName)
-    console.log('fullName length:', newUser.fullName?.length)
-    console.log('fullName type:', typeof newUser.fullName)
+    console.log('currentUser:', currentUser.id)
+    console.log('currentUserProfile:', currentUserProfile)
     console.log('===========================')
     
     try {
       const payload = {
-        email: newUser.email,
+        email: newUser.email.trim(),
         password: newUser.password,
-        fullName: newUser.fullName, // Make sure this is the correct field name
+        fullName: newUser.fullName.trim(),
         role: newUser.role,
         createAccount: newUser.createAccount,
         initialBalance: newUser.initialBalance,
-        adminId: currentUser?.id
+        adminId: currentUser.id // This is the key field for created_by_admin_id
       }
 
       console.log('=== DEBUG: Payload being sent ===')
@@ -71,11 +112,12 @@ const CreateUserModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
 
       const data = await response.json()
       console.log('=== DEBUG: API Response ===')
-      console.log('Response:', data)
+      console.log('Response status:', response.status)
+      console.log('Response data:', data)
       console.log('========================')
 
       if (data.success) {
-        toast.success('User created successfully!')
+        toast.success(data.message || 'User created successfully!')
         onSuccess()
         onClose()
       } else {
@@ -105,6 +147,18 @@ const CreateUserModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
     }))
   }
 
+  // Show loading state while verifying admin credentials
+  if (!currentUser || !currentUserProfile) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
+          <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Verifying admin credentials...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden">
@@ -113,7 +167,14 @@ const CreateUserModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold">Create New User</h2>
-              <p className="text-emerald-100 text-sm mt-1">Add a new user to the system</p>
+              <p className="text-emerald-100 text-sm mt-1">
+                Add a new user to the system
+                {currentUserProfile?.full_name && (
+                  <span className="block text-xs opacity-75">
+                    Creating as: {currentUserProfile.full_name}
+                  </span>
+                )}
+              </p>
             </div>
             <button
               onClick={onClose}
@@ -126,10 +187,10 @@ const CreateUserModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[calc(90vh-120px)] overflow-y-auto">
-          {/* Debug Info */}
+          {/* Debug Info - Uncomment during development */}
           {/* <div className="bg-gray-100 p-3 rounded-lg text-xs">
             <strong>Debug Info:</strong>
-            <pre>{JSON.stringify(newUser, null, 2)}</pre>
+            <pre>{JSON.stringify({ newUser, adminId: currentUser?.id }, null, 2)}</pre>
           </div> */}
 
           {/* Full Name */}

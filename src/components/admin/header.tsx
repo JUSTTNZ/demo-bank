@@ -11,6 +11,7 @@ interface HeaderProps {
   activeTab: string
   currentUser?: UserData | null
   setSidebarOpen: (open: boolean) => void
+  className?: string
 }
 
 const Header = ({ activeTab, currentUser = {}, setSidebarOpen }: HeaderProps) => {
@@ -28,8 +29,7 @@ const Header = ({ activeTab, currentUser = {}, setSidebarOpen }: HeaderProps) =>
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
-      <div className="flex items-center justify-between px-4 lg:px-8 py-4">
-    
+      <div className="flex items-center justify-between px-4 lg:pl-8 lg:pr-8 py-4">
         <div className="flex items-center space-x-4">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -54,7 +54,6 @@ const Header = ({ activeTab, currentUser = {}, setSidebarOpen }: HeaderProps) =>
         </div>
 
         <div className="flex items-center space-x-4">
-        
           <div className="hidden md:flex items-center">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -66,7 +65,6 @@ const Header = ({ activeTab, currentUser = {}, setSidebarOpen }: HeaderProps) =>
             </div>
           </div>
 
-        
           <div className="relative">
             <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
               <Bell className="w-5 h-5" />
@@ -74,7 +72,6 @@ const Header = ({ activeTab, currentUser = {}, setSidebarOpen }: HeaderProps) =>
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
           </div>
 
-      
           <div className="flex items-center space-x-3 pl-4 border-l border-gray-200">
             <div className="hidden sm:block text-right">
               <p className="text-sm font-medium text-gray-900">

@@ -53,7 +53,6 @@ export default function AdminDashboard() {
     } catch (error) {
       console.log(error)
       toast.error('Authentication failed')
-      // router.push('/login')
     }
   }
 
@@ -99,11 +98,11 @@ export default function AdminDashboard() {
       case 'dashboard':
         return <DashboardOverview stats={stats} users={users} />
       case 'users':
-        return <UsersManagement users={users} onRefresh={fetchDashboardData} />
+        return <UsersManagement initialUsers={users} onRefresh={fetchDashboardData} />
       case 'accounts':
-        return <AccountsManagement accounts={accounts} onRefresh={fetchDashboardData} />
+        return <AccountsManagement initialAccounts={accounts} onRefresh={fetchDashboardData} />
       case 'chats':
-        return <ChatsManagement chats={chats} onRefresh={fetchDashboardData} />
+        return <ChatsManagement onRefresh={fetchDashboardData} />
       default:
         return <DashboardOverview stats={stats} users={users} />
     }
@@ -114,29 +113,33 @@ export default function AdminDashboard() {
   }
 
   return (
-   <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
-  <Sidebar
-    activeTab={activeTab}
-    setActiveTab={setActiveTab}
-    sidebarOpen={sidebarOpen}
-    setSidebarOpen={setSidebarOpen}
-    onLogout={handleLogout}
-  />
-  
-  <div className="flex-1  min-h-screen">
-    {/* Header and main content */}
-    <Header
-      activeTab={activeTab}
-      currentUser={currentUser}
-      setSidebarOpen={setSidebarOpen}
-    />
-    
-    <main className="p-4 lg:p-8 pb-8">
-      <div className="max-w-7xl mx-auto">
-        {renderContent()}
+    <div className="flex min-h-full bg-gradient-to-br from-slate-50 to-gray-100">
+      {/* Sidebar - fixed width and position */}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        onLogout={handleLogout}
+      />
+      
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col lg:ml-64"> {/* ml-64 matches sidebar width */}
+        {/* Header - fixed position */}
+        <Header
+          activeTab={activeTab}
+          currentUser={currentUser}
+          setSidebarOpen={setSidebarOpen}
+          className="sticky top-0 z-30"
+        />
+        
+        {/* Scrollable content area */}
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8 pb-8">
+          <div className="max-w-7xl mx-auto">
+            {renderContent()}
+          </div>
+        </main>
       </div>
-    </main>
-  </div>
-</div>
+    </div>
   )
 }
