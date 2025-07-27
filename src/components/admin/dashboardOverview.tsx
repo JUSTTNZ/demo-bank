@@ -9,7 +9,6 @@ import {
   TrendingUp, 
   TrendingDown,
   ArrowUpRight,
-  ArrowDownRight,
   Sparkles
 } from 'lucide-react'
 import { DashboardStats, User } from '@/types/adminTypes'
@@ -79,7 +78,7 @@ const DashboardOverview = ({ stats, users }: DashboardOverviewProps) => {
                 Admin Dashboard
               </h1>
               <p className="text-blue-100 text-lg">
-                Welcome back! Here's what's happening with your platform today.
+                Welcome back! Here&apos;s what&apos;s happening with your platform today.
               </p>
             </div>
             <div className="text-right">

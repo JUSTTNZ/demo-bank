@@ -89,8 +89,8 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone })
             user_metadata: user.user_metadata
           })
         }
-      } catch (err) {
-        console.error('Error getting user:', err)
+      } catch (error) {
+        console.error('Error getting user:', error)
       }
     }
     getCurrentUser()
@@ -158,8 +158,8 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone })
           )
           .subscribe()
 
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Unknown error occurred')
+      } catch (error: unknown) {
+        setError(error instanceof Error ? error.message : 'Unknown error occurred')
       } finally {
         setLoading(false)
       }
@@ -197,8 +197,8 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone })
             seenBy: currentUser.id
           })
         })
-      } catch (err: unknown) {
-        console.error('Error marking messages as seen:', err)
+      } catch (error: unknown) {
+        console.error('Error marking messages as seen:', error)
       }
     }
 
@@ -252,8 +252,8 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone })
       setMessages(prev => prev.map(msg => 
         msg.id === tempId ? { ...data.message, profiles: optimisticMsg.profiles } : msg
       ))
-    } catch (err: unknown) {
-      console.error('Error sending message:', err)
+    } catch (error: unknown) {
+      console.error('Error sending message:', error)
       toast.error('Failed to send message')
       // Remove optimistic message on error
       setMessages(prev => prev.filter(msg => msg.id !== tempId))
@@ -288,7 +288,8 @@ const ChatDetail: React.FC<Props> = ({ chatId, onBack, onClose, adminTimezone })
         } else {
           throw new Error(data.error)
         }
-      } catch (err: unknown) {
+      } catch (error: unknown) {
+        console.error('Error closing chat:', error)
         toast.error('Failed to close chat')
       }
     }

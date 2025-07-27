@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, Filter, Eye, Edit, Trash2, MoreVertical, UserPlus, Users, User, RefreshCw } from 'lucide-react'
+import { Plus, Search, Eye, Edit, Trash2, MoreVertical, UserPlus, Users, RefreshCw } from 'lucide-react'
+import Image from 'next/image'
 import CreateUserModal from '@/components/admin/createUserModal'
 import toast from 'react-hot-toast'
 
 // Type definitions
+interface Account {
+  id: string
+  // Add other account properties as needed
+}
+
 interface User {
   id: string
   full_name?: string
@@ -13,14 +19,7 @@ interface User {
   avatar_url?: string
   created_at: string
   last_sign_in_at?: string
-  accounts?: any[]
-}
-
-interface UserWithProfile extends User {
-  profiles?: {
-    full_name?: string
-    avatar_url?: string
-  }
+  accounts?: Account[]
 }
 
 interface UsersManagementProps {
@@ -33,7 +32,6 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
   const [loading, setLoading] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showActions, setShowActions] = useState<string | null>(null)
 
   // Fetch users from API
@@ -63,7 +61,7 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
     if (initialUsers.length === 0) {
       fetchUsers()
     }
-  }, [])
+  }, [initialUsers.length])
 
   // Handle refresh
   const handleRefresh = () => {
@@ -101,12 +99,12 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
   }
 
   const handleEditUser = (user: User) => {
-    setSelectedUser(user)
+    console.log('Edit user:', user)
     toast('Edit functionality coming soon!')
   }
 
   const handleViewUser = (user: User) => {
-    setSelectedUser(user)
+    console.log('View user:', user)
     toast('View functionality coming soon!')
   }
 
@@ -243,9 +241,11 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
                       <div className="flex items-center">
                         <div className="relative">
                           {user.avatar_url ? (
-                            <img
+                            <Image
                               src={user.avatar_url}
                               alt={user.full_name || 'User'}
+                              width={40}
+                              height={40}
                               className="h-10 w-10 rounded-full object-cover"
                             />
                           ) : (

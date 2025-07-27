@@ -18,9 +18,10 @@ import {
 import { Translation } from '@/types/userTypes';
 import { QuickAction } from '@/types/userTypes';
 
+
 interface QuickActionsProps {
   t: Translation;
-  setShowModal: (action: QuickAction) => void;
+  setShowModal: (action: 'deposit' | 'withdraw' | 'transfer' | 'exchange' | null) => void;
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({ t, setShowModal }) => {

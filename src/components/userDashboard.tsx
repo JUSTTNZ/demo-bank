@@ -14,10 +14,13 @@ import { userApi } from '@/pages/api/users/userApi';
 import { translations } from '../utils/translations';
 import { UserProfile } from '@/types/userTypes';
 
+// Define possible modal actions
+type ModalAction = 'deposit' | 'withdraw' | 'transfer' | 'exchange' | null;
+
 export default function UserDashboard() {
   const [currentLanguage, setCurrentLanguage] = useState('en');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [showModal, setShowModal] = useState<any>(null);
+  const [showModal, setShowModal] = useState<ModalAction>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();

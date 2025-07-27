@@ -13,12 +13,14 @@ export interface ExchangeRate {
   trend: 'up' | 'down';
 }
 
+// In your types file (e.g., userTypes.ts)
 export interface QuickAction {
   icon: LucideIcon;
   name: string;
   key: string;
+  action?: () => void;
+  modalAction?: 'deposit' | 'withdraw' | 'transfer' | 'exchange';
 }
-
 export interface Transaction {
   id: string;
   date: string;
