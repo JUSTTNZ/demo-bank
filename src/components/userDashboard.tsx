@@ -12,7 +12,7 @@ import supabase from '@/utils/supabaseClient';
 import toast from 'react-hot-toast';
 import { userApi } from '@/pages/api/users/userApi';
 import { translations } from '../utils/translations';
-import { UserProfile } from '@/types/userTypes';
+import { UserProfile, QuickAction } from '@/types/userTypes';
 
 // Define possible modal actions
 type ModalAction = 'deposit' | 'withdraw' | 'transfer' | 'exchange' | null;
@@ -21,6 +21,7 @@ export default function UserDashboard() {
   const [currentLanguage, setCurrentLanguage] = useState('en');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showModal, setShowModal] = useState<ModalAction>(null);
+  const [selectedAction, setSelectedAction] = useState<QuickAction | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -56,6 +57,34 @@ export default function UserDashboard() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/login');
+  };
+
+  const handleQuickAction = (action: QuickAction) => {
+    setSelectedAction(action);
+    
+    // Map action keys to modal actions
+    switch (action.key) {
+      case 'sendMoney':
+        setShowModal('transfer');
+        break;
+      case 'deposits':
+        setShowModal('deposit');
+        break;
+      case 'withdraw':
+        setShowModal('withdraw');
+        break;
+      case 'forex':
+        setShowModal('exchange');
+        break;
+      default:
+        toast(`${action.name} feature coming soon!`);
+        break;
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(null);
+    setSelectedAction(null);
   };
 
   if (loading) {
@@ -98,16 +127,17 @@ export default function UserDashboard() {
         <WelcomeSection t={t} userProfile={userProfile} />
         <BalanceSection t={t} userProfile={userProfile} />
         <ExchangeRates t={t} />
-        <QuickActions t={t} setShowModal={setShowModal} />
+        <QuickActions t={t} onActionClick={handleQuickAction} />
         <RecentActivity title="Transaction History" emptyMessage="You haven't made any transactions yet" />
       </main>
 
-      <Modal 
+      <Modal
         isOpen={showModal !== null}
-        onClose={() => setShowModal(null)}
-        action={showModal}
+        onClose={handleCloseModal}
+        action={selectedAction}
         t={t}
       />
     </div>
   );
 }
+

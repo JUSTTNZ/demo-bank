@@ -115,6 +115,13 @@ export interface Translation {
   successProfilePicture: string;
   errorUploadImage: string;
   errorAccountDisabled: string;
+  
+  // Modal translations
+  close: string;
+  cancel: string;
+  proceed: string;
+  proceedMessage: string;
+  
   // FAQ Page Translations
   searchFAQs: string;
   noResultsFound: string;

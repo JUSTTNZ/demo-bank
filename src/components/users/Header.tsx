@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
   Menu, 
   X, 
   Headphones, 
   LogOut 
 } from 'lucide-react';
-import { Language } from '@/types/userTypes';
+import { Translation, UserProfile } from '@/types/userTypes';
 import { languages } from '../../utils/constants';
 
 interface HeaderProps {
@@ -15,8 +16,8 @@ interface HeaderProps {
   isMenuOpen: boolean;
   onSignOut: () => void;
   setIsMenuOpen: (open: boolean) => void;
-  t: any;
-  userProfile: any;
+  t: Translation;
+  userProfile: UserProfile;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -29,6 +30,8 @@ export const Header: React.FC<HeaderProps> = ({
   userProfile
 }) => {
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
+
+  const avatarUrl = userProfile?.avatar_url || 'https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff';
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
@@ -44,11 +47,15 @@ export const Header: React.FC<HeaderProps> = ({
           {/* User Info & Controls */}
           <div className="hidden md:flex items-center space-x-4">
             <Link href="/userprofile" className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-lg transition-colors duration-200">
-              <img 
-                src={userProfile?.avatar_url || 'https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff'} 
-                alt="User Avatar" 
-                className="w-8 h-8 rounded-full hover:ring-2 hover:ring-blue-300 transition-all duration-200"
-              />
+              <div className="relative w-8 h-8 rounded-full overflow-hidden hover:ring-2 hover:ring-blue-300 transition-all duration-200">
+                <Image 
+                  src={avatarUrl}
+                  alt="User Avatar" 
+                  fill
+                  className="object-cover"
+                  sizes="32px"
+                />
+              </div>
               <span className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors duration-200">
                 {userProfile?.full_name}
               </span>
@@ -86,7 +93,6 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             {/* Menu Items */}
-
             <Link href={'/chatpage'} className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
                 <Headphones size={16} />
                 <span>{t.support}</span>
@@ -116,11 +122,15 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="px-2 pt-2 pb-3 space-y-1">
             {/* User info */}
             <div className="flex items-center space-x-3 px-3 py-2 mb-2">
-              <img 
-                src={userProfile?.avatar_url || 'https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff'} 
-                alt="User Avatar" 
-                className="w-8 h-8 rounded-full"
-              />
+              <div className="relative w-8 h-8 rounded-full overflow-hidden">
+                <Image 
+                  src={avatarUrl}
+                  alt="User Avatar" 
+                  fill
+                  className="object-cover"
+                  sizes="32px"
+                />
+              </div>
               <span className="text-sm font-medium text-gray-700">{userProfile?.full_name}</span>
             </div>
 
@@ -150,11 +160,10 @@ export const Header: React.FC<HeaderProps> = ({
             
             {/* Menu items */}
             <Link href={"/chatpage"} className="flex items-center space-x-3 w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
-                <button className="flex items-center space-x-3 w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
-                  <Headphones size={20} />
-                  <span>{t.support}</span>
-              </button>
+              <Headphones size={20} />
+              <span>{t.support}</span>
             </Link>
+            
             <button onClick={onSignOut} className="flex items-center space-x-3 w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
               <LogOut size={20} />
               <span>{t.logout}</span>

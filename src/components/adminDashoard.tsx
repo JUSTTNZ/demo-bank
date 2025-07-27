@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import supabase from '@/utils/supabaseClient'
 import toast from 'react-hot-toast'
@@ -20,16 +20,11 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats>({})
   const [users, setUsers] = useState<User[]>([])
   const [accounts, setAccounts] = useState([])
-  const [chats, setChats] = useState([])
   const [currentUser, setCurrentUser] = useState(null)
   const router = useRouter()
 
-  useEffect(() => {
-    checkAuth()
-    fetchDashboardData()
-  }, [])
-
-  const checkAuth = async () => {
+  // Use useCallback to memoize the function and prevent useEffect dependency issues
+  const checkAuth = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -54,9 +49,9 @@ export default function AdminDashboard() {
       console.log(error)
       toast.error('Authentication failed')
     }
-  }
+  }, [router])
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true)
     try {
       const [statsRes, usersRes, accountsRes, chatsRes] = await Promise.all([
@@ -74,14 +69,25 @@ export default function AdminDashboard() {
       if (statsData.success) setStats(statsData.stats)
       if (usersData.success) setUsers(usersData.users)
       if (accountsData.success) setAccounts(accountsData.accounts)
-      if (chatsData.success) setChats(chatsData.chats)
+      
+      // If you need chats data for the ChatsManagement component,
+      // you can pass chatsData directly or store it in state if needed elsewhere
+      if (chatsData.success) {
+        // Only log or use chats data if actually needed
+        console.log('Chats loaded:', chatsData.chats.length)
+      }
     } catch (error) {
       toast.error('Failed to load dashboard data')
       console.log(error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    checkAuth()
+    fetchDashboardData()
+  }, [checkAuth, fetchDashboardData])
 
   const handleLogout = async () => {
     try {

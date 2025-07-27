@@ -2,7 +2,10 @@ import { Translation } from '@/types/userTypes';
 
 export const translations: Record<string, Translation> = {
   en: {
-    
+    close: 'Close',
+    cancel: 'Cancel',
+    proceed: 'Proceed',
+    proceedMessage: 'You are about to access this feature. Would you like to proceed?',
     goodMorning: 'Good morning',
     goodAfternoon: 'Good afternoon',
     goodEvening: 'Good evening',
@@ -118,6 +121,10 @@ export const translations: Record<string, Translation> = {
   biometricLoginAnswer: 'In the app settings, enable Face ID or Fingerprint login under Security options. Your device must support these features.'
   },
   fr: {
+    close: 'Fermer',
+    cancel: 'Annuler',
+    proceed: 'Continuer',
+    proceedMessage: 'Vous êtes sur le point d\'accéder à cette fonctionnalité. Voulez-vous continuer ?',
     goodMorning: 'Bonjour',
     goodAfternoon: 'Bon après-midi',
     goodEvening: 'Bonsoir',
@@ -236,6 +243,10 @@ export const translations: Record<string, Translation> = {
 
   },
   es: {
+    close: 'Cerrar',
+    cancel: 'Cancelar',
+    proceed: 'Continuar',
+    proceedMessage: 'Estás a punto de acceder a esta función. ¿Deseas continuar?',
     goodMorning: 'Buenos días',
     goodAfternoon: 'Buenas tardes',
     goodEvening: 'Buenas noches',
@@ -349,6 +360,10 @@ export const translations: Record<string, Translation> = {
   biometricLoginAnswer: 'En la configuración de la aplicación, active el inicio de sesión con Face ID o huella digital en las opciones de Seguridad. Su dispositivo debe soportar estas funciones.'
   },
   pt: {
+    close: 'Fechar',
+    cancel: 'Cancelar',
+    proceed: 'Prosseguir',
+    proceedMessage: 'Você está prestes a acessar este recurso. Deseja continuar?',
     goodMorning: 'Bom dia',
     goodAfternoon: 'Boa tarde',
     goodEvening: 'Boa noite',
@@ -465,6 +480,10 @@ export const translations: Record<string, Translation> = {
   biometricLoginAnswer: 'Nas configurações do aplicativo, ative o login por Face ID ou impressão digital nas opções de Segurança. Seu dispositivo deve suportar esses recursos.'
 },
   nl: {
+    close: 'Sluiten',
+    cancel: 'Annuleren',
+    proceed: 'Doorgaan',
+    proceedMessage: 'U staat op het punt om deze functie te gebruiken. Wilt u doorgaan?',
     goodMorning: 'Goedemorgen',
     goodAfternoon: 'Goedemiddag',
     goodEvening: 'Goedenavond',
@@ -581,6 +600,10 @@ export const translations: Record<string, Translation> = {
   biometricLoginAnswer: 'Schakel in de app-instellingen Face ID of vingerafdruk inloggen in onder Beveiligingsopties. Uw apparaat moet deze functies ondersteunen.'
   },
   ar: {
+    close: 'إغلاق',
+    cancel: 'إلغاء',
+    proceed: 'متابعة',
+    proceedMessage: 'أنت على وشك الوصول إلى هذه الميزة. هل ترغب في المتابعة؟',
     goodMorning: 'صباح الخير',
     goodAfternoon: 'مساء الخير',
     goodEvening: 'مساء الخير',

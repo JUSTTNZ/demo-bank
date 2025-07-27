@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react';
+import { TrendingDown, TrendingUp } from 'lucide-react';
 import { useExchangeRates } from '@/hooks/useExchangeRates';
 import { Translation } from '@/types/userTypes';
 

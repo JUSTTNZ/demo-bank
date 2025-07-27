@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
+import { Translation, UserProfile, Account } from '@/types/userTypes';
 
 interface BalanceSectionProps {
-  t: any;
-  userProfile: any;
+  t: Translation;
+  userProfile: UserProfile;
 }
 
 export const BalanceSection: React.FC<BalanceSectionProps> = ({ t, userProfile }) => {
   const [showBalance, setShowBalance] = useState(false);
   
   const primaryAccount = userProfile?.accounts?.[0];
-  const totalBalance = userProfile?.accounts?.reduce((sum: number, account: any) => sum + account.balance, 0) || 0;
+  const totalBalance = userProfile?.accounts?.reduce((sum: number, account: Account) => sum + account.balance, 0) || 0;
 
   return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

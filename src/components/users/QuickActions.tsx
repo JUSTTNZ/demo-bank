@@ -1,30 +1,28 @@
+// QuickActions Component
 import React from 'react';
-import { 
-  Send, 
-  FileText, 
-  DollarSign, 
-  PiggyBank, 
-  Building, 
+import {
+  Send,
+  FileText,
+  DollarSign,
+  PiggyBank,
+  Building,
   Wallet,
   Phone,
   Globe,
   Shield,
   Settings,
   TrendingUp,
-  TrendingDown,
   Headphones,
   CreditCard
 } from 'lucide-react';
-import { Translation } from '@/types/userTypes';
-import { QuickAction } from '@/types/userTypes';
-
+import { Translation, QuickAction } from '@/types/userTypes';
 
 interface QuickActionsProps {
   t: Translation;
-  setShowModal: (action: 'deposit' | 'withdraw' | 'transfer' | 'exchange' | null) => void;
+  onActionClick: (action: QuickAction) => void;
 }
 
-export const QuickActions: React.FC<QuickActionsProps> = ({ t, setShowModal }) => {
+export const QuickActions: React.FC<QuickActionsProps> = ({ t, onActionClick }) => {
   const actions: QuickAction[] = [
     { icon: Send, name: t.sendMoney, key: 'sendMoney' },
     { icon: FileText, name: t.transactionDetails, key: 'transactionDetails' },
@@ -51,7 +49,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ t, setShowModal }) =
         {actions.map((action) => (
           <button
             key={action.key}
-            onClick={() => setShowModal(action)}
+            onClick={() => onActionClick(action)}
             className="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-green-50 hover:shadow-md transition-all duration-200 transform hover:scale-105 group"
           >
             <action.icon size={32} className="text-green-600 mb-2 group-hover:text-green-700" />

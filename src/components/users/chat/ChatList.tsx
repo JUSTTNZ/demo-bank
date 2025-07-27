@@ -12,16 +12,40 @@ import {
   MessageCircle,
   Send,
   ArrowLeft,
-  User,
   Clock,
   CheckCheck,
   Loader2,
 } from "lucide-react";
 import { useTimestampFormatter, getUserInitials } from "@/utils/timeStamp";
 
+// Define proper types
+interface Message {
+  id: string;
+  chat_id: string;
+  sender_id: string;
+  message: string;
+  created_at: string;
+  profiles?: {
+    id: string;
+    email: string;
+    full_name: string;
+  };
+}
+
+interface AdminProfile {
+  id: string;
+  full_name: string;
+  last_sign_in_at: Date;
+  avatar_url: string | null;
+}
+
+interface SubscriptionPayload {
+  new: Message;
+}
+
 const ChatBox = () => {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +58,7 @@ const ChatBox = () => {
   const userTimezone = user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   const { formatMessageTime, formatDetailedTime } = useTimestampFormatter(userTimezone);
 
-  const adminProfile = {
+  const adminProfile: AdminProfile = {
     id: "admin-id",
     full_name: "Support Agent",
     last_sign_in_at: new Date(Date.now() - 300000),
@@ -56,7 +80,7 @@ const ChatBox = () => {
         chatIdRef.current = chatId;
         const msgs = await fetchMessages(chatId);
         
-        const validMessages = msgs.filter((msg: any) => {
+        const validMessages = msgs.filter((msg: Message) => {
           return msg.message && 
                  msg.message.trim() !== "" && 
                  msg.created_at &&
@@ -65,7 +89,7 @@ const ChatBox = () => {
         
         setMessages(validMessages);
         
-        const subscription = subscribeToMessages(chatId, (payload) => {
+        const subscription = subscribeToMessages(chatId, (payload: SubscriptionPayload) => {
           if (payload.new.message && 
               payload.new.message.trim() !== "" && 
               payload.new.created_at &&
@@ -99,7 +123,7 @@ const ChatBox = () => {
     
     // Create optimistic message
     const tempId = `temp_${Date.now()}`;
-    const optimisticMessage = {
+    const optimisticMessage: Message = {
       id: tempId,
       chat_id: chatIdRef.current,
       sender_id: user.id,
@@ -107,8 +131,8 @@ const ChatBox = () => {
       created_at: new Date().toISOString(),
       profiles: {
         id: user.id,
-        email: user.email,
-        full_name: user.user_metadata?.full_name || user.email
+        email: user.email || '',
+        full_name: user.user_metadata?.full_name || user.email || ''
       }
     };
 
@@ -142,7 +166,7 @@ const ChatBox = () => {
       <div className="w-full bg-white min-h-screen">
         <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-4">
           <h1 className="text-xl font-semibold">Customer Support</h1>
-          <p className="text-emerald-100 text-sm">We're here to help you 24/7</p>
+          <p className="text-emerald-100 text-sm">We&apos;re here to help you 24/7</p>
         </div>
 
         <div className="p-4 md:p-6">
@@ -162,7 +186,6 @@ const ChatBox = () => {
             </div>
 
             <div className="mt-6 space-y-3">
-    
               <div className="flex items-center space-x-2 text-gray-600">
                 <Clock className="w-4 h-4" />
                 <span className="text-sm">

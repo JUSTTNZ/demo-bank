@@ -1,30 +1,39 @@
-
+import Image from 'next/image';
 import { Message } from '@/types/userTypes';
-export function MessageItem({ 
-  message, 
-  userId 
-}: { 
-  message: Message; 
-  userId: string 
+
+export function MessageItem({
+  message,
+  userId
+}: {
+  message: Message;
+  userId: string
 }) {
   const isCurrentUser = message.sender_id === userId;
-  
+
   return (
     <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`flex max-w-xs md:max-w-md lg:max-w-lg ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
         {!isCurrentUser && (
-          <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gray-300 overflow-hidden mr-2">
-            <img 
-              src={message.profiles?.avatar_url || ''} 
-              alt={message.profiles?.full_name}
-              className="h-full w-full object-cover"
-            />
+          <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gray-300 overflow-hidden mr-2 relative">
+            {message.profiles?.avatar_url ? (
+              <Image
+                src={message.profiles.avatar_url}
+                alt={message.profiles?.full_name || 'User avatar'}
+                fill
+                className="object-cover"
+                sizes="32px"
+              />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center bg-gray-400 text-white text-xs font-semibold">
+                {message.profiles?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+            )}
           </div>
         )}
         
         <div className={`px-4 py-2 rounded-lg ${
-          isCurrentUser 
-            ? 'bg-blue-600 text-white rounded-tr-none' 
+          isCurrentUser
+            ? 'bg-blue-600 text-white rounded-tr-none'
             : 'bg-gray-200 text-gray-800 rounded-tl-none'
         }`}>
           {!isCurrentUser && (
@@ -36,9 +45,9 @@ export function MessageItem({
           <div className={`text-xs mt-1 ${
             isCurrentUser ? 'text-blue-100' : 'text-gray-500'
           }`}>
-            {new Date(message.sent_at).toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit' 
+            {new Date(message.sent_at).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit'
             })}
           </div>
         </div>

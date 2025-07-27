@@ -20,6 +20,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, action, t }) => {
             <button
               onClick={onClose}
               className="text-gray-500 hover:text-gray-700 transition-colors"
+              aria-label={t.close || 'Close'}
             >
               <X size={24} />
             </button>
@@ -28,7 +29,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, action, t }) => {
           <div className="text-center py-6">
             <action.icon size={48} className="text-green-600 mx-auto mb-4" />
             <p className="text-gray-600 mb-6">
-              You are about to access {action.name}. Would you like to proceed?
+              {t.proceedMessage || `You are about to access ${action.name}. Would you like to proceed?`}
             </p>
             
             <div className="flex space-x-4">
@@ -36,13 +37,13 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, action, t }) => {
                 onClick={onClose}
                 className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Cancel
+                {t.cancel || 'Cancel'}
               </button>
               <button
-                onClick={() => alert('Account disabled at the moment')}
+                onClick={() => alert(t.accountDisabled || 'Account disabled at the moment')}
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
-                Proceed
+                {t.proceed || 'Proceed'}
               </button>
             </div>
           </div>
