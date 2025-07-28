@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { Translation, UserProfile } from '@/types/userTypes';
 import { languages } from '../../utils/constants';
-
+import Logo from "../../../assets/images/hero.png"
 interface HeaderProps {
   currentLanguage: string;
   setCurrentLanguage: (lang: string) => void;
@@ -39,9 +39,13 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg font-bold text-lg">
-              DemoBank
-            </div>
+             <Image
+                             src={Logo}
+                             alt="Demo Bank Logo"
+                             width={50}
+                             height={50}
+                             className="rounded-full "
+                           /> 
           </div>
 
           {/* User Info & Controls */}
