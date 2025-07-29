@@ -24,15 +24,17 @@ export interface DashboardStats {
   accountGrowthRate?: number
   revenueGrowthRate?: number
 }
+export type AccountStatus = 'active' | 'disabled' | 'suspended'
 
 export interface Account {
   id: string
   user_id: string
   account_type: string
+  account_number: string
   balance: number
   created_at: string
   updated_at: string
-  status: 'active' | 'inactive' | 'suspended'
+  status: AccountStatus
   user?: User
 }
 
@@ -111,15 +113,6 @@ export interface StatCardProps {
   trendColor?: string
 }
 
-
-export interface Account {
-  id: string
-  account_number: string
-  balance: number
-  created_at: string
-  updated_at: string
-}
-
 export interface Message {
   id: string
   chat_id: string
@@ -131,4 +124,16 @@ export interface Message {
     last_name?: string
     email: string
   }
+}
+
+export interface UpdateAccountStatusRequest {
+  accountId: string
+  status: AccountStatus
+}
+
+export interface UpdateAccountStatusResponse {
+  success: boolean
+  message?: string
+  error?: string
+  account?: Account
 }

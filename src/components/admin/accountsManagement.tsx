@@ -16,7 +16,7 @@ interface Account {
   account_number: string
   balance: number
   currency?: string
-  status: 'active' | 'inactive' | 'suspended'
+  status: 'active' | 'disabled' | 'suspended'
   created_at: string
   updated_at: string
   profiles: User | null
