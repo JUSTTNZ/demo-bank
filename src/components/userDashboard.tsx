@@ -13,12 +13,25 @@ import toast from 'react-hot-toast';
 import { userApi } from '@/pages/api/users/userApi';
 import { translations } from '../utils/translations';
 import { UserProfile, QuickAction } from '@/types/userTypes';
+import { useSelector } from 'react-redux';
 
 // Define possible modal actions
 type ModalAction = 'deposit' | 'withdraw' | 'transfer' | 'exchange' | null;
+ interface Language {
+  code: string;
+  name: string;
+  flag: string;
+}
+ interface LanguageState {
+  currentLanguage: string;
+  availableLanguages: Language[];
+}
 
+interface RootState {
+  language: LanguageState;
+}
 export default function UserDashboard() {
-  const [currentLanguage, setCurrentLanguage] = useState('en');
+    const currentLanguage = useSelector((state: RootState) => state.language.currentLanguage);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showModal, setShowModal] = useState<ModalAction>(null);
   const [selectedAction, setSelectedAction] = useState<QuickAction | null>(null);
@@ -114,8 +127,8 @@ export default function UserDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header 
-        currentLanguage={currentLanguage}
-        setCurrentLanguage={setCurrentLanguage}
+        // currentLanguage={currentLanguage}
+        // setCurrentLanguage={setCurrentLanguage}
         isMenuOpen={isMenuOpen}
         setIsMenuOpen={setIsMenuOpen}
         t={t}

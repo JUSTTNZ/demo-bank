@@ -20,30 +20,32 @@ import {
   Mail,
   Calendar,
 } from 'lucide-react';
+import { useSelector } from 'react-redux';
+interface Language {
+  code: string;
+  name: string;
+  flag: string;
+}
+ interface LanguageState {
+  currentLanguage: string;
+  availableLanguages: Language[];
+}
 
+interface RootState {
+  language: LanguageState;
+}
 export default function UserProfilePage() {
-  const [currentLanguage, setCurrentLanguage] = useState('en');
+  const currentLanguage = useSelector((state: RootState) => state.language.currentLanguage);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-
+console.log(currentLanguage)
   const t = translations[currentLanguage];
 
   // Load saved language preference on component mount
-  useEffect(() => {
-    const savedLanguage = localStorage.getItem('user-language');
-    if (savedLanguage && translations[savedLanguage]) {
-      setCurrentLanguage(savedLanguage);
-    }
-  }, []);
-
-  // Save language preference whenever it changes
-  useEffect(() => {
-    localStorage.setItem('user-language', currentLanguage);
-  }, [currentLanguage]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -75,9 +77,7 @@ export default function UserProfilePage() {
     router.push('/login');
   };
 
-  const handleLanguageChange = (newLanguage: string) => {
-    setCurrentLanguage(newLanguage);
-  };
+ 
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -153,8 +153,6 @@ export default function UserProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header 
-        currentLanguage={currentLanguage}
-        setCurrentLanguage={handleLanguageChange}
         isMenuOpen={isMenuOpen}
         setIsMenuOpen={setIsMenuOpen}
         t={t}
