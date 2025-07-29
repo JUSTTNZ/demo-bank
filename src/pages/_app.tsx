@@ -4,7 +4,9 @@ import { Toaster } from 'react-hot-toast'
 // 👇 Import font
 import { Inter } from 'next/font/google'
 import { AuthProvider } from '../../contexts/auth'
-
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import { store, persistor } from '../../store';
 const inter = Inter({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'], // Optional
@@ -27,8 +29,13 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         }}
       />
       <AuthProvider>
+        <Provider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
         <Component {...pageProps} />
+         </PersistGate>
+    </Provider>
       </AuthProvider>
+
     </main>
   )
 }

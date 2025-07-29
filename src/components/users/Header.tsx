@@ -9,43 +9,65 @@ import {
 } from 'lucide-react';
 import { Translation, UserProfile } from '@/types/userTypes';
 import { languages } from '../../utils/constants';
-import Logo from "../../../assets/images/hero.png"
+import Logo from "../../../assets/images/hero.png";
+import { useDispatch, useSelector } from 'react-redux';
+import { setLanguage } from '../../../action';
+
+
 interface HeaderProps {
-  currentLanguage: string;
-  setCurrentLanguage: (lang: string) => void;
   isMenuOpen: boolean;
   onSignOut: () => void;
   setIsMenuOpen: (open: boolean) => void;
   t: Translation;
   userProfile: UserProfile | null;
 }
+ interface Language {
+  code: string;
+  name: string;
+  flag: string;
+}
+ interface LanguageState {
+  currentLanguage: string;
+  availableLanguages: Language[];
+}
+
+interface RootState {
+  language: LanguageState;
+}
 
 export const Header: React.FC<HeaderProps> = ({ 
-  currentLanguage, 
-  setCurrentLanguage, 
   isMenuOpen, 
   setIsMenuOpen,
   onSignOut,
   t,
   userProfile
 }) => {
+  const currentLanguage = useSelector((state: RootState) => state.language.currentLanguage);
+  const availableLanguages = useSelector((state: RootState) => state.language.availableLanguages);
+  const dispatch = useDispatch();
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
-
   const avatarUrl = userProfile?.avatar_url || 'https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff';
 
+ const handleLanguageSelect = (langCode: string) => {
+  dispatch(setLanguage(langCode)); // 🔥 Update Redux store
+  setIsLangDropdownOpen(false);
+  setIsMenuOpen(false);
+};
+// console.log(currentLanguage,"cu")
+// console.log(availableLanguages,"a")
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-             <Image
-                             src={Logo}
-                             alt="Demo Bank Logo"
-                             width={50}
-                             height={50}
-                             className="rounded-full "
-                           /> 
+            <Image
+              src={Logo}
+              alt="Demo Bank Logo"
+              width={50}
+              height={50}
+              className="rounded-full"
+            /> 
           </div>
 
           {/* User Info & Controls */}
@@ -78,13 +100,10 @@ export const Header: React.FC<HeaderProps> = ({
               {isLangDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
                   <div className="py-1">
-                    {languages.map((lang) => (
+                    {availableLanguages.map((lang) => (
                       <button
                         key={lang.code}
-                        onClick={() => {
-                          setCurrentLanguage(lang.code);
-                          setIsLangDropdownOpen(false);
-                        }}
+                        onClick={() => handleLanguageSelect(lang.code)}
                         className="flex items-center space-x-3 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                       >
                         <span>{lang.flag}</span>
@@ -142,13 +161,10 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="border-b border-gray-200 pb-2 mb-2">
               <div className="text-sm font-medium text-gray-700 mb-2">Language</div>
               <div className="grid grid-cols-2 gap-2">
-                {languages.map((lang) => (
+                {availableLanguages.map((lang) => (
                   <button
                     key={lang.code}
-                    onClick={() => {
-                      setCurrentLanguage(lang.code);
-                      setIsMenuOpen(false);
-                    }}
+                    onClick={() => handleLanguageSelect(lang.code)}
                     className={`flex items-center space-x-2 px-3 py-2 text-sm rounded-md transition-colors ${
                       currentLanguage === lang.code 
                         ? 'bg-green-50 text-green-700' 
