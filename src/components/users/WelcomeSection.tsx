@@ -4,7 +4,6 @@ import { getGreeting } from '@/utils/formatters';
 
 interface Account {
   status: 'active' | 'disabled' | 'suspended';
-  // Add other account properties as needed
 }
 
 interface UserProfile {

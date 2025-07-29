@@ -40,6 +40,7 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
     } finally {
       setLoading(false)
     }
+    //console.log('Fetched users:', users)
   }
 
   // Load users on component mount
