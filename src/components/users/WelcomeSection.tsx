@@ -30,6 +30,8 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({ t, userProfile }
   const primaryAccount = userProfile?.accounts?.[0];
   const isAccountDisabled = primaryAccount?.status === 'disabled';
 
+  console.log('Primary account:', primaryAccount); // For debugging
+
   return (
     <div className="bg-gradient-to-r from-red-50 to-red-100 rounded-xl p-6 mb-6">
       <div className="flex items-center justify-between">
@@ -40,14 +42,14 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({ t, userProfile }
           <p className="text-xl text-gray-700 font-semibold">{userProfile.full_name}</p>
           <p className="text-sm text-gray-600 mt-1">{userProfile.email}</p>
         </div>
-        
+
         {/* Account Status Indicator */}
         <div className={`flex items-center space-x-2 px-4 py-2 rounded-lg border ${
           isAccountDisabled 
-            ? 'bg-green-50 text-green-700 border-green-200' 
-            : 'bg-red-50 text-red-700 border-red-200'
+            ? 'bg-red-50 text-red-700 border-red-200' 
+            : 'bg-green-50 text-green-700 border-green-200'
         }`}>
-          {!isAccountDisabled ? (
+          {isAccountDisabled ? (
             <>
               <AlertTriangle size={20} className="text-red-600" />
               <span className="font-medium">{t.accountDisabled}</span>
@@ -60,7 +62,7 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({ t, userProfile }
           )}
         </div>
       </div>
-      
+
       {/* Disabled Account Warning (only shows when disabled) */}
       {isAccountDisabled && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">

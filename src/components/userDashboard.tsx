@@ -149,6 +149,7 @@ export default function UserDashboard() {
         onClose={handleCloseModal}
         action={selectedAction}
         t={t}
+        userProfile={userProfile}  
       />
     </div>
   );
