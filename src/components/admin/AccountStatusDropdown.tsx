@@ -1,156 +1,100 @@
-// components/admin/AccountStatusDropdown.tsx
 import { useState } from 'react'
-import { ChevronRight, Check, Ban, Pause } from 'lucide-react'
-import { Account, AccountStatus } from '@/types/adminTypes'
+import { Check, Ban, Pause, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 
+type AccountStatus = 'active' | 'disabled' | 'suspended'
+
 interface AccountStatusDropdownProps {
-  accounts: Account[]
-  onStatusUpdate: (accountId: string, newStatus: AccountStatus) => void
-  onClose: () => void
+  accountId: string
+  currentStatus: AccountStatus
+  onStatusChange: (newStatus: AccountStatus) => Promise<void>
 }
 
-const AccountStatusDropdown = ({ 
-  accounts, 
-  onStatusUpdate, 
-  onClose 
+const AccountStatusDropdown = ({
+  accountId,
+  currentStatus,
+  onStatusChange
 }: AccountStatusDropdownProps) => {
-  const [showStatusOptions, setShowStatusOptions] = useState<string | null>(null)
-  const [updatingAccounts, setUpdatingAccounts] = useState<Set<string>>(new Set())
+  const [isOpen, setIsOpen] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
 
-  const statusConfig = {
-    active: {
-      label: 'Active',
-      color: 'text-green-700 bg-green-100',
-      icon: Check,
-      description: 'Account is active and functional'
+  const statusOptions = [
+    { 
+      value: 'active', 
+      label: 'Active', 
+      icon: Check, 
+      color: 'text-green-600',
+      bgColor: 'bg-green-100'
     },
-    disabled: {
-      label: 'Disabled',
-      color: 'text-red-700 bg-red-100',
-      icon: Ban,
-      description: 'Account is disabled and cannot be used'
+    { 
+      value: 'disabled', 
+      label: 'Disabled', 
+      icon: Ban, 
+      color: 'text-red-600',
+      bgColor: 'bg-red-100'
     },
-    suspended: {
-      label: 'Suspended',
-      color: 'text-yellow-700 bg-yellow-100',
-      icon: Pause,
-      description: 'Account is temporarily suspended'
+    { 
+      value: 'suspended', 
+      label: 'Suspended', 
+      icon: Pause, 
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-100'
     }
-  }
+  ]
 
-  const handleStatusChange = async (id: string, newStatus: AccountStatus) => {
-    setUpdatingAccounts(prev => new Set(prev).add(id))
-    
+  const handleStatusUpdate = async (newStatus: AccountStatus) => {
+    if (newStatus === currentStatus) {
+      setIsOpen(false)
+      return
+    }
+
+    setIsUpdating(true)
     try {
-      const response = await fetch(`/api/admin/accounts/${id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        toast.success(`Account status updated to ${newStatus}`)
-        onStatusUpdate(id, newStatus)
-      } else {
-        toast.error(data.error || 'Failed to update account status')
-      }
+      await onStatusChange(newStatus)
+      toast.success(`Status updated to ${newStatus}`)
     } catch (error) {
-      toast.error('Failed to update account status')
-      console.error('Error updating account status:', error)
+      toast.error('Failed to update status')
     } finally {
-      setUpdatingAccounts(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(id)
-        return newSet
-      })
-      setShowStatusOptions(null)
+      setIsUpdating(false)
+      setIsOpen(false)
     }
   }
 
-  if (accounts.length === 0) {
-    return (
-      <div className="px-4 py-3 text-sm text-gray-500 text-center">
-        No accounts found
-      </div>
-    )
-  }
+  const currentStatusConfig = statusOptions.find(opt => opt.value === currentStatus)
 
   return (
-    <div className="py-2">
-      <div className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-100">
-        Account Status ({accounts.length} account{accounts.length !== 1 ? 's' : ''})
-      </div>
-      
-      {accounts.map((account) => {
-        const StatusIcon = statusConfig[account.status].icon
-        const isUpdating = updatingAccounts.has(account.id)
-        
-        return (
-          <div key={account.id} className="relative">
-            <button
-              onClick={() => setShowStatusOptions(
-                showStatusOptions === account.id ? null : account.id
-              )}
-              disabled={isUpdating}
-              className="w-full flex items-center justify-between px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="text-xs font-mono text-gray-500">
-                  ...{account.account_number.slice(-6)}
-                </div>
-                <div className="flex items-center space-x-2">
-                  <StatusIcon className="w-3 h-3" />
-                  <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${statusConfig[account.status].color}`}>
-                    {statusConfig[account.status].label}
-                  </span>
-                </div>
-              </div>
-              <ChevronRight className={`w-4 h-4 transition-transform ${
-                showStatusOptions === account.id ? 'rotate-90' : ''
-              }`} />
-            </button>
-            
-            {showStatusOptions === account.id && (
-              <div className="absolute left-full top-0 ml-1 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20 min-w-[200px]">
-                <div className="px-3 py-2 text-xs font-medium text-gray-500 border-b border-gray-100">
-                  Change Status
-                </div>
-                {Object.entries(statusConfig).map(([status, config]) => {
-                  const OptionIcon = config.icon
-                  const isCurrentStatus = account.status === status
-                  
-                  return (
-                    <button
-                      key={status}
-                      onClick={() => handleStatusChange(account.id, status as AccountStatus)}
-                      disabled={isCurrentStatus || isUpdating}
-                      className={`w-full flex items-center px-3 py-2 text-sm transition-colors ${
-                        isCurrentStatus 
-                          ? 'bg-gray-50 text-gray-400 cursor-not-allowed' 
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      <OptionIcon className="w-4 h-4 mr-3" />
-                      <div className="flex-1 text-left">
-                        <div className="font-medium">{config.label}</div>
-                        <div className="text-xs text-gray-500">{config.description}</div>
-                      </div>
-                      {isCurrentStatus && (
-                        <Check className="w-4 h-4 text-green-500" />
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+    <div className="relative inline-block text-left">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={isUpdating}
+        className={`inline-flex items-center justify-between px-3 py-1 rounded-md border ${currentStatusConfig?.bgColor} ${currentStatusConfig?.color} text-sm font-medium hover:bg-opacity-80 transition-colors`}
+      >
+        <div className="flex items-center">
+          {currentStatusConfig?.icon && (
+            <currentStatusConfig.icon className="w-3 h-3 mr-1" />
+          )}
+          <span className="capitalize">{currentStatus}</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-1 w-40 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+          <div className="py-1">
+            {statusOptions.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => handleStatusUpdate(option.value as AccountStatus)}
+                disabled={option.value === currentStatus || isUpdating}
+                className={`${option.value === currentStatus ? 'bg-gray-100' : 'hover:bg-gray-50'} w-full text-left px-3 py-2 text-sm flex items-center ${option.color}`}
+              >
+                <option.icon className="w-3 h-3 mr-2" />
+                {option.label}
+              </button>
+            ))}
           </div>
-        )
-      })}
+        </div>
+      )}
     </div>
   )
 }

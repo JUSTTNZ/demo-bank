@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.error('Profile fetch error:', profileError)
       }
 
-      const { data: accounts } = await supabaseAdmin.from('accounts').select('user_id, id')
+      const { data: accounts } = await supabaseAdmin.from('accounts').select('user_id, id, account_number, balance, currency, status')
 
       // Debug logging
       console.log('Total users from auth:', users?.length)

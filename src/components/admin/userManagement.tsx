@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, Eye, Edit, Trash2, MoreVertical, UserPlus, Users, RefreshCw, CreditCard, Check, Ban, Pause, ChevronRight } from 'lucide-react'
+import { Plus, Search, Eye, Edit, Trash2, MoreVertical, UserPlus, Users, RefreshCw } from 'lucide-react'
 import Image from 'next/image'
 import CreateUserModal from '@/components/admin/createUserModal'
-import AccountStatusDropdown from '@/components/admin/AccountStatusDropdown'
-import { User, Account, AccountStatus } from '@/types/adminTypes'
+import { AccountStatus } from '@/types/adminTypes'
+import { User } from '@/types/adminTypes'
 import toast from 'react-hot-toast'
+import AccountStatusDropdown from './AccountStatusDropdown'
+
 
 interface UsersManagementProps {
   initialUsers?: User[]
@@ -17,13 +19,12 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [showActions, setShowActions] = useState<string | null>(null)
-  const [showAccountStatus, setShowAccountStatus] = useState<string | null>(null)
 
-  // Fetch users from API with account details
+  // Fetch users from API
   const fetchUsers = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/admin/users?include_accounts=true')
+      const response = await fetch('/api/admin/users')
       const data = await response.json()
       
       if (data.success) {
@@ -60,6 +61,41 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
     return matchesSearch
   })
 
+  const handleAccountStatusUpdate = async (userId: string, accountId: string, newStatus: AccountStatus) => {
+  try {
+    const response = await fetch(`/api/admin/accounts/${accountId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    })
+
+    const data = await response.json()
+
+    if (data.success) {
+      // Update local state
+      setUsers(prevUsers =>
+        prevUsers.map(user => {
+          if (user.id !== userId) return user
+          
+          return {
+            ...user,
+            accounts: user.accounts?.map(account => 
+              account.id === accountId 
+                ? { ...account, status: newStatus } 
+                : account
+            ) || []
+          }
+        })
+      )
+      return true
+    } else {
+      throw new Error(data.error || 'Failed to update status')
+    }
+  } catch (error) {
+    console.error('Error updating account status:', error)
+    throw error
+  }
+}
   const handleDeleteUser = async (userId: string, userEmail: string) => {
     if (!confirm(`Are you sure you want to delete user ${userEmail}? This action cannot be undone.`)) return
 
@@ -114,19 +150,6 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
     }
   }
 
-  const handleAccountStatusUpdate = (accountId: string, newStatus: AccountStatus) => {
-    setUsers(prevUsers => 
-      prevUsers.map(user => ({
-        ...user,
-        accounts: user.accounts?.map(account => 
-          account.id === accountId 
-            ? { ...account, status: newStatus }
-            : account
-        )
-      }))
-    )
-  }
-
   const handleUserCreated = async () => {
     // Add a small delay to ensure the user is fully created in the database
     setTimeout(async () => {
@@ -154,33 +177,6 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
     if (diffDays === 1) return 'Yesterday'
     if (diffDays < 7) return `${diffDays} days ago`
     return `Last active ${formatDate(dateString)}`
-  }
-
-  const getAccountStatusSummary = (accounts?: Account[]) => {
-    if (!accounts || accounts.length === 0) return { active: 0, disabled: 0, suspended: 0 }
-    
-    return accounts.reduce((acc, account) => {
-      acc[account.status] = (acc[account.status] || 0) + 1
-      return acc
-    }, { active: 0, disabled: 0, suspended: 0 } as Record<AccountStatus, number>)
-  }
-
-  const AccountStatusBadge = ({ status }: { status: AccountStatus }) => {
-    const configs = {
-      active: { icon: Check, color: 'bg-green-100 text-green-700', label: 'Active' },
-      disabled: { icon: Ban, color: 'bg-red-100 text-red-700', label: 'Disabled' },
-      suspended: { icon: Pause, color: 'bg-yellow-100 text-yellow-700', label: 'Suspended' }
-    }
-    
-    const config = configs[status]
-    const Icon = config.icon
-    
-    return (
-      <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
-        <Icon className="w-3 h-3 mr-1" />
-        {config.label}
-      </span>
-    )
   }
 
   return (
@@ -249,10 +245,7 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
                     Accounts
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Account Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User Status
+                    Status
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Created
@@ -260,196 +253,162 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Account Status
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200/50">
-                {filteredUsers.map((user) => {
-                  const accountSummary = getAccountStatusSummary(user.accounts)
-                  
-                  return (
-                    <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="relative">
-                            {user.avatar_url ? (
-                              <Image
-                                src={user.avatar_url}
-                                alt={user.full_name || 'User'}
-                                width={40}
-                                height={40}
-                                className="h-10 w-10 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                                <span className="text-white font-medium text-sm">
-                                  {user.full_name?.[0] || user.email[0].toUpperCase()}
-                                </span>
-                              </div>
-                            )}
-                            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                {filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="relative">
+                          {user.avatar_url ? (
+                            <Image
+                              src={user.avatar_url}
+                              alt={user.full_name || 'User'}
+                              width={40}
+                              height={40}
+                              className="h-10 w-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+                              <span className="text-white font-medium text-sm">
+                                {user.full_name?.[0] || user.email[0].toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {user.full_name || 'No name provided'}
                           </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {user.full_name || 'No name provided'}
-                            </div>
-                            <div className="text-sm text-gray-500">{user.email}</div>
-                            {user.phone && (
-                              <div className="text-xs text-gray-400">{user.phone}</div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <span className="text-sm text-gray-900 font-medium">
-                            {user.accounts?.length || 0}
-                          </span>
-                          <span className="text-xs text-gray-500 ml-1">accounts</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="space-y-1">
-                          {accountSummary.active > 0 && (
-                            <div className="flex items-center text-xs">
-                              <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                              <span className="text-green-700">{accountSummary.active} Active</span>
-                            </div>
-                          )}
-                          {accountSummary.disabled > 0 && (
-                            <div className="flex items-center text-xs">
-                              <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
-                              <span className="text-red-700">{accountSummary.disabled} Disabled</span>
-                            </div>
-                          )}
-                          {accountSummary.suspended > 0 && (
-                            <div className="flex items-center text-xs">
-                              <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
-                              <span className="text-yellow-700">{accountSummary.suspended} Suspended</span>
-                            </div>
-                          )}
-                          {!user.accounts || user.accounts.length === 0 && (
-                            <span className="text-xs text-gray-400">No accounts</span>
+                          <div className="text-sm text-gray-500">{user.email}</div>
+                          {user.phone && (
+                            <div className="text-xs text-gray-400">{user.phone}</div>
                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></div>
-                          Active
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <span className="text-sm text-gray-900 font-medium">
+                          {user.accounts?.length || 0}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {formatDate(user.created_at)}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {formatLastActive(user.last_sign_in_at)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center space-x-2">
-                          <button 
-                            onClick={() => handleViewUser(user)}
-                            className="text-emerald-600 hover:text-emerald-900 transition-colors p-1 rounded hover:bg-emerald-50"
-                            title="View user"
+                        <span className="text-xs text-gray-500 ml-1">accounts</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></div>
+                        Active
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {formatDate(user.created_at)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {formatLastActive(user.last_sign_in_at)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        <button 
+                          onClick={() => handleViewUser(user)}
+                          className="text-emerald-600 hover:text-emerald-900 transition-colors p-1 rounded hover:bg-emerald-50"
+                          title="View user"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleEditUser(user)}
+                          className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded hover:bg-blue-50"
+                          title="Edit user"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteUser(user.id, user.email)}
+                          className="text-red-600 hover:text-red-900 transition-colors p-1 rounded hover:bg-red-50"
+                          title="Delete user"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <div className="relative">
+                          <button
+                            onClick={() => setShowActions(showActions === user.id ? null : user.id)}
+                            className="text-gray-600 hover:text-gray-900 transition-colors p-1 rounded hover:bg-gray-50"
                           >
-                            <Eye className="w-4 h-4" />
+                            <MoreVertical className="w-4 h-4" />
                           </button>
-                          <button 
-                            onClick={() => handleEditUser(user)}
-                            className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded hover:bg-blue-50"
-                            title="Edit user"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteUser(user.id, user.email)}
-                            className="text-red-600 hover:text-red-900 transition-colors p-1 rounded hover:bg-red-50"
-                            title="Delete user"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                          <div className="relative">
-                            <button
-                              onClick={() => setShowActions(showActions === user.id ? null : user.id)}
-                              className="text-gray-600 hover:text-gray-900 transition-colors p-1 rounded hover:bg-gray-50"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                            {showActions === user.id && (
-                              <div className="absolute right-0 top-8 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10 min-w-[140px]">
-                                <button
-                                  onClick={() => {
-                                    handleViewUser(user)
-                                    setShowActions(null)
-                                  }}
-                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                >
-                                  View Details
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    handleEditUser(user)
-                                    setShowActions(null)
-                                  }}
-                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                >
-                                  Edit User
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    handleResetPassword(user.id, user.email)
-                                    setShowActions(null)
-                                  }}
-                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                >
-                                  Reset Password
-                                </button>
-                                {user.accounts && user.accounts.length > 0 && (
-                                  <div className="relative">
-                                    <button
-                                      onClick={() => setShowAccountStatus(
-                                        showAccountStatus === user.id ? null : user.id
-                                      )}
-                                      className="flex items-center justify-between w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                    >
-                                      <div className="flex items-center">
-                                        <CreditCard className="w-4 h-4 mr-2" />
-                                        Account Status
-                                      </div>
-                                      <ChevronRight className={`w-4 h-4 transition-transform ${
-                                        showAccountStatus === user.id ? 'rotate-90' : ''
-                                      }`} />
-                                    </button>
-                                    {showAccountStatus === user.id && (
-                                      <div className="absolute left-full top-0 ml-1">
-                                        <AccountStatusDropdown
-                                          accounts={user.accounts || []}
-                                          onStatusUpdate={handleAccountStatusUpdate}
-                                          onClose={() => setShowAccountStatus(null)}
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                                <hr className="my-1" />
-                                <button
-                                  onClick={() => {
-                                    handleDeleteUser(user.id, user.email)
-                                    setShowActions(null)
-                                  }}
-                                  className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                                >
-                                  Delete User
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                          {showActions === user.id && (
+                            <div className="absolute right-0 top-8 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10 min-w-[140px]">
+                              <button
+                                onClick={() => {
+                                  handleViewUser(user)
+                                  setShowActions(null)
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              >
+                                View Details
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleEditUser(user)
+                                  setShowActions(null)
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              >
+                                Edit User
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleResetPassword(user.id, user.email)
+                                  setShowActions(null)
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              >
+                                Reset Password
+                              </button>
+                              <hr className="my-1" />
+                              <button
+                                onClick={() => {
+                                  handleDeleteUser(user.id, user.email)
+                                  setShowActions(null)
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                              >
+                                Delete User
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      </td>
-                    </tr>
-                  )
-                })}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {user.accounts?.length ? (
+                        <div className="space-y-2">
+                          {user.accounts.map(account => (
+                            <div key={account.id} className="flex items-center space-x-2">
+                              <AccountStatusDropdown
+                                accountId={account.id}
+                                currentStatus={account.status}
+                                onStatusChange={async (newStatus) => {
+                                  await handleAccountStatusUpdate(user.id, account.id, newStatus)
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-sm">No accounts</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -488,14 +447,11 @@ const UsersManagement = ({ initialUsers = [], onRefresh }: UsersManagementProps)
         />
       )}
 
-      {/* Click outside to close menus */}
-      {(showActions || showAccountStatus) && (
+      {/* Click outside to close actions menu */}
+      {showActions && (
         <div
           className="fixed inset-0 z-5"
-          onClick={() => {
-            setShowActions(null)
-            setShowAccountStatus(null)
-          }}
+          onClick={() => setShowActions(null)}
         />
       )}
     </div>
