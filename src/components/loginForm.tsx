@@ -5,8 +5,9 @@ import supabase from '@/utils/supabaseClient'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react'
-
+import { Eye, EyeOff, Mail, Lock, ArrowRight, } from 'lucide-react'
+import Logo from "../../assets/images/logo.png"
+import Image from 'next/image'
 export default function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -76,11 +77,17 @@ export default function LoginForm() {
         <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 sm:p-10 transform transition-all duration-300 hover:shadow-3xl">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl mb-4 shadow-lg transform transition-transform duration-300 hover:scale-105">
-              <Sparkles className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4  transform transition-transform duration-300 hover:scale-105">
+                <Image
+                             src={Logo}
+                             alt="Demo Bank Logo"
+                             width={80}
+                             height={80}
+                             className="rounded-full "
+                           /> 
             </div>
             <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
-              Demo Bank
+              Clover Bank
             </h1>
             <p className="text-gray-600 text-sm">Welcome back! Please sign in to continue</p>
           </div>
@@ -179,18 +186,18 @@ export default function LoginForm() {
           </form>
 
           {/* Divider */}
-          <div className="flex items-center my-8">
+          {/* <div className="flex items-center my-8">
             <div className="flex-grow border-t border-gray-200"></div>
             <span className="mx-4 text-gray-500 text-sm bg-white/70 px-3 py-1 rounded-full">
               Admin Access Only
             </span>
             <div className="flex-grow border-t border-gray-200"></div>
-          </div>
+          </div> */}
 
           {/* Contact admin message */}
-          <div className="text-center">
+          <div className="text-center my-8">
             <p className="text-gray-600 text-sm">
-              Don&apos;t have an account? Contact your administrator for access.
+              Don&apos;t have an account? Visit bank to open an account.
             </p>
           </div>
         </div>

@@ -171,6 +171,8 @@ export default function UserProfilePage() {
                 <Image
                   src={userProfile.avatar_url || 'https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff'} 
                   alt="Profile Avatar" 
+                  width={32}
+                  height={32}
                   className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover"
                 />
                 <button
