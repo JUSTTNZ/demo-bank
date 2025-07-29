@@ -17,12 +17,17 @@ import {
 } from 'lucide-react';
 import { Translation, QuickAction } from '@/types/userTypes';
 
+
+
 interface QuickActionsProps {
   t: Translation;
   onActionClick: (action: QuickAction) => void;
+ 
+
 }
 
-export const QuickActions: React.FC<QuickActionsProps> = ({ t, onActionClick }) => {
+
+export const QuickActions: React.FC<QuickActionsProps> = ({ t, onActionClick, }) => {
   const actions: QuickAction[] = [
     { icon: Send, name: t.sendMoney, key: 'sendMoney' },
     { icon: FileText, name: t.transactionDetails, key: 'transactionDetails' },
